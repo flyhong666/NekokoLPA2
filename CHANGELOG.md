@@ -1,6 +1,16 @@
 # Changelog
 
 All notable changes to NekokoLPA2 will be documented in this file.
+
+## [2.0.8+564] - 2026-04-03
+
+### Added
+- Android now detects rooted devices and shows that OTBridge can be used to enable Telephony support and bypass OMAPI ARA-M restrictions.
+
+### Changed
+- Android prefers the external OTBridge provider path when present.
+- Android CI no longer builds the privileged NekokoLPA2 variant.
+
 ## [2.0.4+557] - 2026-02-28
 
 ### Added

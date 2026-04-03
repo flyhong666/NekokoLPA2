@@ -15,11 +15,18 @@ Translations is now managed with [Crowdin](https://crowdin.com/project/nekokolpa
 ## Features
 
 - **Multi-Reader Support**: BLE, USB CCID, OMAPI, Telephony API, Remote readers
+- **Rooted Android Path**: On rooted Android devices, OTBridge can be used to enable Telephony support and bypass OMAPI ARA-M restrictions without requiring the main app itself to be installed as a privileged app
 - **Custom Profile Icons**: Set custom icons from gallery, remote sources, or eSIM card
 - **Smart Tag System**: Organize profiles with date tags, notes, and custom labels
 - **Scheduled Notifications**: Get reminders for profile expiry and important dates
 - **Cross-Platform**: Android, iOS, macOS, Linux, Windows, and Web
 - **Advanced UI**: Smart folding app bar, compact context menus, responsive design
+
+## Android Notes
+
+- NekokoLPA2 prefers the external `OTBridge` provider on Android when it is installed.
+- On rooted Android devices, `OTBridge` can expose Telephony/TMAPI access and help bypass OMAPI ARA-M restrictions while keeping NekokoLPA2 itself on the normal app path.
+- `OTBridge` releases are available at: [iebb/OTBridge](https://github.com/iebb/OTBridge/releases)
 
 ## Changelog
 
