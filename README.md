@@ -1,5 +1,7 @@
 # NekokoLPA2 - Advanced eSIM Management
 [![Crowdin](https://badges.crowdin.net/nekokolpa2/localized.svg)](https://crowdin.com/project/nekokolpa2)
+[![Download on the App Store](https://img.shields.io/badge/App%20Store-Download-0D96F6?logo=appstore&logoColor=white&style=for-the-badge)](https://apps.apple.com/en/app/nekokolpa-2/id6757540723)
+[![Get it on Google Play](https://img.shields.io/badge/Google%20Play-Download-34A853?logo=googleplay&logoColor=white&style=for-the-badge)](https://play.google.com/store/apps/details?id=ee.nekoko.nlpa)
 
 
 **Language:** **English** | [日本語](./README_ja-JP.md)
@@ -34,6 +36,8 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history and release notes.
 
 ## Download
 
+- [![Download on the App Store](https://img.shields.io/badge/App%20Store-Download-0D96F6?logo=appstore&logoColor=white&style=for-the-badge)](https://apps.apple.com/en/app/nekokolpa-2/id6757540723)
+- [![Get it on Google Play](https://img.shields.io/badge/Google%20Play-Download-34A853?logo=googleplay&logoColor=white&style=for-the-badge)](https://play.google.com/store/apps/details?id=ee.nekoko.nlpa)
 - **Android**: [GitHub Releases](https://github.com/iebb/NekokoLPA2/releases)
 - **iOS/macOS**: [TestFlight](https://testflight.apple.com/join/bP38fzC4)
 - **Windows**: [GitHub Releases](https://github.com/iebb/NekokoLPA2/releases)
