@@ -1,4 +1,4 @@
-# NekokoLPA2 - Advanced eSIM Management
+# NekokoLPA2
 [![Crowdin](https://badges.crowdin.net/nekokolpa2/localized.svg)](https://crowdin.com/project/nekokolpa2)
 
 
@@ -9,22 +9,44 @@
 **Language:** **English** | [日本語](./README_ja-JP.md)
 
 
-NekokoLPA2 is a powerful, cross-platform eSIM management application supporting multiple card readers and advanced profile management features.
+NekokoLPA2 is a cross-platform eSIM management app for working with local eUICCs, external readers, and remote reader endpoints. It is designed for users who need more control over profile operations, transport choices, and card visibility than a typical carrier app exposes.
 
-## For Translatore:
+## Highlights
 
-Translations is now managed with [Crowdin](https://crowdin.com/project/nekokolpa2).
+- Works across Android, iOS, macOS, Linux, Windows, and Chrome
+- Supports BLE readers, USB CCID readers, OMAPI, Telephony/TMAPI, remote readers, and browser-side WebUSB paths
+- Includes profile organization tools such as custom icons, notes, tags, and scheduled notifications
+- On rooted Android devices, `OTBridge` can enable Telephony support and help bypass OMAPI ARA-M restrictions without requiring NekokoLPA2 itself to be installed as a privileged app
+
+## Platform Support
+
+| Connection Type | Android | iOS | macOS | Linux | Windows | Chrome |
+| --- | --- | --- | --- | --- | --- | --- |
+| BLE readers | Yes | Yes | Yes | No | Yes | Yes |
+| USB CCID readers | Yes | No | Yes | Yes | Yes | No |
+| Remote readers | Yes | Yes | Yes | Yes | Yes | Yes |
+| OMAPI | Yes | No | No | No | No | No |
+| Telephony / TMAPI | Yes | No | No | No | No | No |
+| `OTBridge` provider | Yes | No | No | No | No | No |
+| WebUSB SCRP / WebCard | No | No | No | No | No | Yes |
+
+Notes:
+- `Telephony / TMAPI` and `OTBridge` are Android-only paths.
+- `OTBridge` is intended for rooted Android setups where Telephony access or OMAPI policy bypass is needed.
+- Chrome support refers to the web build running in a Chromium browser with the required browser APIs available.
+
+## Translation
+
+Translations are managed on [Crowdin](https://crowdin.com/project/nekokolpa2).
 
 
 ## Features
 
-- **Multi-Reader Support**: BLE, USB CCID, OMAPI, Telephony API, Remote readers
-- **Rooted Android Path**: On rooted Android devices, OTBridge can be used to enable Telephony support and bypass OMAPI ARA-M restrictions without requiring the main app itself to be installed as a privileged app
-- **Custom Profile Icons**: Set custom icons from gallery, remote sources, or eSIM card
-- **Smart Tag System**: Organize profiles with date tags, notes, and custom labels
-- **Scheduled Notifications**: Get reminders for profile expiry and important dates
-- **Cross-Platform**: Android, iOS, macOS, Linux, Windows, and Web
-- **Advanced UI**: Smart folding app bar, compact context menus, responsive design
+- **Multi-reader support**: BLE, USB CCID, OMAPI, Telephony API, remote readers, and browser-based transports
+- **Rooted Android path**: `OTBridge` can enable Telephony support and bypass OMAPI ARA-M restrictions while keeping the main app unprivileged
+- **Profile organization**: Custom icons, notes, tags, and compact management tools
+- **Scheduled notifications**: Reminders for expiry and other profile-related events
+- **Cross-platform UI**: Responsive layout with platform-aware reader flows
 
 ## Android Notes
 
@@ -32,18 +54,17 @@ Translations is now managed with [Crowdin](https://crowdin.com/project/nekokolpa
 - On rooted Android devices, `OTBridge` can expose Telephony/TMAPI access and help bypass OMAPI ARA-M restrictions while keeping NekokoLPA2 itself on the normal app path.
 - `OTBridge` releases are available at: [iebb/OTBridge](https://github.com/iebb/OTBridge/releases)
 
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for detailed version history and release notes.
-
 ## Download
 
 - [![Download on the App Store](https://img.shields.io/badge/App%20Store-Download-0D96F6?logo=appstore&logoColor=white&style=for-the-badge)](https://apps.apple.com/en/app/nekokolpa-2/id6757540723)
 - [![Get it on Google Play](https://img.shields.io/badge/Google%20Play-Download-34A853?logo=googleplay&logoColor=white&style=for-the-badge)](https://play.google.com/store/apps/details?id=ee.nekoko.nlpa)
-- **Android**: [GitHub Releases](https://github.com/iebb/NekokoLPA2/releases)
-- **iOS/macOS**: [TestFlight](https://testflight.apple.com/join/bP38fzC4)
-- **Windows**: [GitHub Releases](https://github.com/iebb/NekokoLPA2/releases)
-- **Web**: [web.lpa.ee](https://web.lpa.ee) 
+- **GitHub Releases**: [iebb/NekokoLPA2 releases](https://github.com/iebb/NekokoLPA2/releases)
+- **TestFlight**: [Join TestFlight](https://testflight.apple.com/join/bP38fzC4)
+- **Web**: [web.lpa.ee](https://web.lpa.ee)
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for release history and user-facing changes.
 
 ## Support
 
