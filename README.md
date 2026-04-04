@@ -22,13 +22,13 @@ NekokoLPA2 is a cross-platform eSIM management app for working with local eUICCs
 
 | Connection Type | Android | iOS | macOS | Linux | Windows | Chrome |
 | --- | --- | --- | --- | --- | --- | --- |
-| BLE readers | Yes | Yes | Yes | No | Yes | Yes |
-| USB CCID readers | Yes | No | Yes | Yes | Yes | No |
-| Remote readers | Yes | Yes | Yes | Yes | Yes | Yes |
-| OMAPI | Yes | No | No | No | No | No |
-| Telephony / TMAPI | Yes | No | No | No | No | No |
-| `OTBridge` provider | Yes | No | No | No | No | No |
-| WebUSB SCRP / WebCard | No | No | No | No | No | Yes |
+| BLE readers | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
+| USB CCID readers | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Remote readers | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| OMAPI | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Telephony / TMAPI | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| `OTBridge` provider | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| WebUSB SCRP / WebCard | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
 
 Notes:
 - `Telephony / TMAPI` and `OTBridge` are Android-only paths.
