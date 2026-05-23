@@ -2,6 +2,20 @@
 
 All notable changes to NekokoLPA2 will be documented in this file.
 
+## [2.0.10+568] - 2026-05-24
+
+### Added
+- Added distinct OMAPI and Telephony API reader icons.
+- Added notification send, delete, and completion animations with a session-only pause control.
+
+### Changed
+- Improved eSIM switching stability across OMAPI and Telephony API readers.
+- Notification processing now follows auto-trigger settings unless paused by the user.
+
+### Fixed
+- Fixed launch-time eSIM switching failures and reader deduplication for channels pointing at the same card.
+- Fixed notification count taps showing stale sent notifications before fresh metadata finishes loading.
+
 ## [2.0.8+564] - 2026-04-03
 
 ### Added
