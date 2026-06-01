@@ -72,8 +72,8 @@ For issues, feature requests, or questions, please visit our [GitHub Issues](htt
 
 ## License
 
-Proprietary - Source code not publicly available at the moment, due to the complexity of the codebase and the fact that it is a work in progress. It's planned to switch to open source in the coming months.
+NekokoLPA2 is released under the [MIT License](LICENSE).
 
 ---
 
-© 2026 Nekoko. All rights reserved.
+© 2026 Nekoko.
