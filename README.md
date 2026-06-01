@@ -70,6 +70,13 @@ Translations are managed on [Crowdin](https://crowdin.com/project/nekokolpa2).
 
 See [CHANGELOG.md](CHANGELOG.md) for release history and user-facing changes.
 
+## Wiki
+
+- [Getting Started](docs/wiki/Getting-Started.md)
+- [Features](docs/wiki/Features.md)
+- [Readers and Platforms](docs/wiki/Readers-and-Platforms.md)
+- [Troubleshooting](docs/wiki/Troubleshooting.md)
+
 ## Support
 
 For issues, feature requests, or questions, please visit our [GitHub Issues](https://github.com/iebb/NekokoLPA2/issues).
