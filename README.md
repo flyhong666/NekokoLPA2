@@ -74,6 +74,8 @@ For issues, feature requests, or questions, please visit our [GitHub Issues](htt
 
 NekokoLPA2 is released under the [MIT License](LICENSE).
 
+The NekokoLPA cat mascot artwork was created by @sanzennami. Reference use is OK, but the mascot SHOULD NOT be used as your own logo, app icon, shop avatar, or dominant brand mark without agreement. You may include it as part of a logo or image only when it does not exceed 10% of the entire logo or image and the use does not imply official endorsement. See [NOTICE](NOTICE) and [BRANDING.md](BRANDING.md).
+
 ---
 
 © 2026 Nekoko.

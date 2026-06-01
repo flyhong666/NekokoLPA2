@@ -28,7 +28,7 @@ Examples:
 
 > This reader was tested with NekokoLPA-compatible workflows.
 
-Fair use of the NekokoLPA name and cat mascot is always permitted when the use is truthful and not misleading.
+Fair use of the NekokoLPA name is always permitted when the use is truthful and not misleading. Reference use of the cat mascot is also allowed, subject to the artwork rules below.
 
 ### 3. Avoid Misleading Official Claims
 
@@ -69,19 +69,24 @@ Preferred:
 
 ### 5. NekokoLPA Cat Mascot
 
-You may use the NekokoLPA cat mascot as a supporting visual element to explain compatibility or integration.
+The NekokoLPA cat mascot artwork was created by @sanzennami.
+
+Reference use of the mascot artwork is OK for compatibility statements, documentation, tutorials, product pages, and technical integration notes when the use is truthful and not misleading.
+
+The mascot artwork SHOULD NOT be used as your own logo, app icon, shop avatar, or dominant brand mark without agreement. You may include it as part of a logo or image only when it does not exceed 10% of the entire logo or image and the use does not imply official, authorized, certified, sponsored, or endorsed status.
 
 Allowed:
 
-- Using the cat mascot in a compatibility section;
-- Showing it next to “Compatible with NekokoLPA”;
+- Using the cat mascot as a reference in a compatibility section;
+- Showing it next to “Compatible with NekokoLPA” in a truthful and non-misleading way;
 - Using it in documentation, tutorials, or product explanations;
-- Combining it with your own product images and branding in a non-misleading way.
+- Including it as a small part of your logo or image when it does not exceed 10% of the entire logo or image.
 
 Please avoid:
 
-- Using the cat mascot as your main logo, app icon, or shop avatar;
+- Using the cat mascot as your own logo, app icon, shop avatar, or dominant brand mark;
 - Making the cat mascot the whole or dominant design of your product, package, card, website, or advertisement;
+- Using the cat mascot as more than 10% of your logo or image;
 - Making users believe your product is an official NekokoLPA product.
 
 ### 6. Android App Support: ARA-M Configuration
@@ -114,11 +119,11 @@ If you mention NekokoLPA on a product page, package, manual, advertisement, or s
 
 ### 8. Simple Rules
 
-1. Fair use of the NekokoLPA wording and cat mascot is allowed.
+1. Fair use of the NekokoLPA wording and reference use of the cat mascot are allowed.
 2. You may say your product is compatible with NekokoLPA.
 3. Do not imply official, authorized, certified, sponsored, or endorsed status without written permission.
 4. Do not use NekokoLPA or Nekoko as your own main brand, product, app, or shop name.
-5. Do not use the cat mascot as your main logo or entire design.
+5. Do not use the cat mascot as your main logo, entire design, or more than 10% of a logo or image.
 6. Do not use names, images, descriptions, or ads that may mislead users.
 
 ### 9. If There Is a Problem
@@ -154,7 +159,7 @@ If a use of the NekokoLPA name or cat mascot may cause confusion, we may ask the
 
 > 该读卡器已基于 NekokoLPA 兼容流程进行测试。
 
-只要使用是真实且不误导的，对 NekokoLPA 名称和猫猫吉祥物的合理使用始终被允许。
+只要使用是真实且不误导的，对 NekokoLPA 名称的合理使用始终被允许。对猫猫吉祥物的参考性使用也可以，但需遵守下方的美术作品规则。
 
 ### 3. 避免误导为官方关系
 
@@ -197,19 +202,24 @@ If a use of the NekokoLPA name or cat mascot may cause confusion, we may ask the
 
 ### 5. NekokoLPA 猫猫吉祥物
 
-你可以将 NekokoLPA 猫猫吉祥物作为辅助视觉元素，用于说明兼容性或集成关系。
+NekokoLPA 猫猫吉祥物美术作品由 @sanzennami 创作。
+
+只要使用真实且不误导，就可以在兼容性说明、文档、教程、商品页面和技术集成说明中参考使用该吉祥物美术作品。
+
+除非另有约定，不应将该吉祥物美术作品作为你自己的 logo、App 图标、店铺头像或主要品牌标识。你可以将其作为 logo 或图片的一小部分使用，但前提是该美术作品不超过整个 logo 或图片的 10%，且不会暗示官方、授权、认证、赞助或背书关系。
 
 可以：
 
-- 在兼容性说明区域使用猫猫吉祥物；
-- 与“兼容 NekokoLPA”等文字一起展示；
+- 在兼容性说明区域参考使用猫猫吉祥物；
+- 以真实且不误导的方式与“兼容 NekokoLPA”等文字一起展示；
 - 在文档、教程或商品说明中使用；
-- 与你自己的产品图片和品牌一起使用，只要不造成误导。
+- 将其作为你的 logo 或图片的一小部分使用，且不超过整个 logo 或图片的 10%。
 
 请避免：
 
-- 将猫猫吉祥物作为你的主 logo、App 图标或店铺头像；
+- 将猫猫吉祥物作为你自己的 logo、App 图标、店铺头像或主要品牌标识；
 - 让猫猫吉祥物成为产品、包装、卡面、网页或广告的全部或主要设计；
+- 让猫猫吉祥物超过你的 logo 或图片的 10%；
 - 让用户误以为你的产品是 NekokoLPA 官方产品。
 
 ### 6. Android App 支持：ARA-M 配置
@@ -242,11 +252,11 @@ d1c0f48b370e74d4ea4770ed4c3cd70a3198d31f
 
 ### 8. 简单原则
 
-1. 可以合理使用 NekokoLPA 字样和猫猫吉祥物。
+1. 可以合理使用 NekokoLPA 字样，也可以参考使用猫猫吉祥物。
 2. 可以说明你的产品“兼容 NekokoLPA”。
 3. 除非有书面授权，不要暗示官方、授权、认证、赞助或背书关系。
 4. 不要将 NekokoLPA 或 Nekoko 作为你自己的主要品牌名、产品名、App 名或店铺名。
-5. 不要将猫猫吉祥物作为你的主 logo 或整个设计。
+5. 不要将猫猫吉祥物作为你的主 logo、整个设计，或超过 logo/图片的 10%。
 6. 不要使用可能误导用户的名称、图片、描述或广告。
 
 ### 9. 如果出现问题
