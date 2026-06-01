@@ -72,10 +72,11 @@ See [CHANGELOG.md](CHANGELOG.md) for release history and user-facing changes.
 
 ## Wiki
 
-- [Getting Started](docs/wiki/Getting-Started.md)
-- [Features](docs/wiki/Features.md)
-- [Readers and Platforms](docs/wiki/Readers-and-Platforms.md)
-- [Troubleshooting](docs/wiki/Troubleshooting.md)
+- [Wiki Home](https://github.com/iebb/NekokoLPA2/wiki)
+- [Getting Started](https://github.com/iebb/NekokoLPA2/wiki/Getting-Started)
+- [Features](https://github.com/iebb/NekokoLPA2/wiki/Features)
+- [Readers and Platforms](https://github.com/iebb/NekokoLPA2/wiki/Readers-and-Platforms)
+- [Troubleshooting](https://github.com/iebb/NekokoLPA2/wiki/Troubleshooting)
 
 ## Support
 
