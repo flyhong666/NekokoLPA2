@@ -62,6 +62,10 @@ Translations are managed on [Crowdin](https://crowdin.com/project/nekokolpa2).
 - **TestFlight**: [Join TestFlight](https://testflight.apple.com/join/bP38fzC4)
 - **Web**: [web.lpa.ee](https://web.lpa.ee)
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/chart?repos=iebb/NekokoLPA2%2Ciebb/NekokoLPA&type=date&legend=top-left)](https://www.star-history.com/?repos=iebb%2FNekokoLPA2%2Ciebb%2FNekokoLPA&type=date&legend=top-left)
+
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for release history and user-facing changes.
