@@ -4,6 +4,7 @@ import '../utils/platform_adapter.dart';
 import 'euicc_adapter.dart';
 import 'ccid/ccid_adapter.dart';
 import 'webcard/web_card_adapter.dart';
+import 'ble/bee_sim_adapter.dart';
 import 'ble/red_ble_adapter.dart';
 import 'ble/red_ble2_adapter.dart';
 
@@ -142,6 +143,9 @@ class CompositeAdapter extends BaseAdapter {
               break;
             case 'simlink':
               source = SimLinkAdapter();
+              break;
+            case 'bee_sim':
+              source = BeeSimAdapter();
               break;
             default:
               source = RedBleAdapter();

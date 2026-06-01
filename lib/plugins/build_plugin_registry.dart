@@ -1,6 +1,7 @@
 // GENERATED FILE - DO NOT EDIT
 // Keep this list in sync with public plugins.
 
+import 'bee_sim_plugin.dart';
 import 'estk_plugin.dart';
 import 'nekoko_stats_plugin.dart';
 import 'plugin_base.dart';
@@ -16,6 +17,7 @@ class BuildPluginRegistry {
       <String, ProfilePluginFactory>{
         'NekokoStatsPlugin': NekokoStatsPlugin.new,
         'EstkPlugin': EstkPlugin.new,
+        'BeeSimPlugin': BeeSimPlugin.new,
       };
 
   static final Map<String, SessionPluginFactory> _sessionFactories =

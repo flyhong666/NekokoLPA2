@@ -131,7 +131,9 @@ class BleManager extends ChangeNotifier {
 
         // Keywords filter
         final matchKeyword =
-            lowerName.contains('estkme') || lowerName.contains('esim_writer');
+            lowerName.contains('estkme') ||
+            lowerName.contains('esim_writer') ||
+            lowerName.contains('beesim');
 
         if (matchKeyword) return true;
 
@@ -156,7 +158,7 @@ class BleManager extends ChangeNotifier {
         // Guid('544b') and Guid('6d65') are characteristics, not services
       ];
 
-      final keywords = ['ESTKme', 'eSIM_Writer'];
+      final keywords = ['ESTKme', 'eSIM_Writer', 'BeeSIM'];
 
       _log.info("Calling Ble.startScan with keywords: $keywords");
       await Ble.startScan(
@@ -234,6 +236,8 @@ class BleManager extends ChangeNotifier {
     } else if (lowerAdv.contains("esim_writer") ||
         lowerName.contains("esim_writer")) {
       type = 'simlink';
+    } else if (lowerAdv.contains("beesim") || lowerName.contains("beesim")) {
+      type = 'bee_sim';
     }
 
     final info = BleReaderInfo(
