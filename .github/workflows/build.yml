@@ -49,17 +49,13 @@ jobs:
       - run: flutter test
       - name: Build APK
         run: flutter build apk --release --flavor ${{ env.FLAVOR }} --target lib/main.dart
-      - name: Build AAB
-        run: flutter build appbundle --release --flavor ${{ env.FLAVOR }} --target lib/main.dart
-      - name: Rename APK / AAB to Kasutera scheme
+      - name: Rename APK to Kasutera scheme
         env:
           VERSION_CLEAN: ${{ needs.meta.outputs.version_clean }}
         run: |
           mkdir -p dist
           cp build/app/outputs/flutter-apk/app-${FLAVOR}-release.apk \
              "dist/${PACKAGE_ID}-${VERSION_CLEAN}-android.apk"
-          cp build/app/outputs/bundle/${FLAVOR}Release/app-${FLAVOR}-release.aab \
-             "dist/${PACKAGE_ID}-${VERSION_CLEAN}-android.aab"
       - uses: actions/upload-artifact@v4
         with:
           name: android
@@ -224,7 +220,6 @@ jobs:
           | Artifact | Platform | Description |
           | --- | --- | --- |
           | \`${PACKAGE_ID}-${VERSION_CLEAN}-android.apk\` | Android | Community APK |
-          | \`${PACKAGE_ID}-${VERSION_CLEAN}-android.aab\` | Android | Community App Bundle |
           | \`${PACKAGE_ID}-${VERSION_CLEAN}-web.zip\` | Web | Static web build |
           | \`${PACKAGE_ID}-${VERSION_CLEAN}-windows-setup.exe\` | Windows | Inno Setup installer |
           | \`${PACKAGE_ID}-${VERSION_CLEAN}-windows-x64.zip\` | Windows | Portable archive |
