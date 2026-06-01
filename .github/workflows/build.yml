@@ -1,0 +1,117 @@
+name: Build NekokoLPA2
+
+on:
+  push:
+    branches: [release]
+  pull_request:
+    branches: [release]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: dart analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Build community Android APK
+        run: flutter build apk --release --flavor community --target lib/main.dart
+
+      - name: Build community Android App Bundle
+        run: flutter build appbundle --release --flavor community --target lib/main.dart
+
+      - name: Build web
+        run: flutter build web --release
+
+      - name: Package web build
+        run: cd build/web && zip -r ../nekokolpa2-web.zip .
+
+      - name: Read release version
+        id: version
+        run: |
+          version="$(awk '/^version:/ { print $2; exit }' pubspec.yaml)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: nekokolpa2-community-apk
+          path: build/app/outputs/flutter-apk/app-community-release.apk
+
+      - name: Upload Android App Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: nekokolpa2-community-aab
+          path: build/app/outputs/bundle/communityRelease/app-community-release.aab
+
+      - name: Upload web build
+        uses: actions/upload-artifact@v4
+        with:
+          name: nekokolpa2-web
+          path: build/nekokolpa2-web.zip
+
+      - name: Create GitHub release
+        if: github.ref == 'refs/heads/release' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          tag_name="v$VERSION"
+          release_notes="$(awk -v ver="[$VERSION]" 'index($0, "## " ver) == 1 {p=1; next} p && /^## \[/ {p=0} p' CHANGELOG.md | sed '/^$/d' | head -n 20)"
+          if [ -z "$release_notes" ]; then
+            release_notes="Public builds for NekokoLPA2 v$VERSION"
+          fi
+
+          artifact_table="$(cat <<'EOF'
+          | Package / Artifact | Platform | Description |
+          | --- | --- | --- |
+          | `ee.nekoko.nlpa2.open` | Android APK | Community signature public build |
+          | `ee.nekoko.nlpa2.open` | Android AAB | Community signature public bundle |
+          | `nekokolpa2-web.zip` | Web | Static web build |
+          EOF
+          )"
+
+          full_notes="$release_notes
+
+          ## Artifacts
+
+          $artifact_table"
+
+          if gh release view "$tag_name" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release edit "$tag_name" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "NekokoLPA2 $tag_name" \
+              --notes "$full_notes"
+          else
+            gh release create "$tag_name" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "NekokoLPA2 $tag_name" \
+              --notes "$full_notes"
+          fi
+
+          gh release upload "$tag_name" \
+            build/app/outputs/flutter-apk/app-community-release.apk \
+            build/app/outputs/bundle/communityRelease/app-community-release.aab \
+            build/nekokolpa2-web.zip \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber

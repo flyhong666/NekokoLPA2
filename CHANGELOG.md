@@ -2,6 +2,12 @@
 
 All notable changes to NekokoLPA2 will be documented in this file.
 
+## [2.1.0+569] - 2026-06-01
+
+### Changed
+- Prepared public store branding and standard platform icons.
+- Restricted GitHub release publishing to the release branch.
+
 ## [2.0.10+568] - 2026-05-24
 
 ### Added
@@ -25,21 +31,10 @@ All notable changes to NekokoLPA2 will be documented in this file.
 - Android prefers the external OTBridge provider path when present.
 - Android CI no longer builds the privileged NekokoLPA2 variant.
 
-## [2.0.4+557] - 2026-02-28
-
-### Added
-- Modify BLE Password for 9eSIM BLE Card
-
 ## [2.0.4+555] - 2026-02-15
 
 ### Added
 - Improved eSTK.me Card support
-- Added 9eSIM BLE Card support
-
-## [2.0.2+546] - 2026-01-31
-
-### Added
-- Add BeeSIM support
 
 ## [2.0.2+543] - 2026-01-25
 
@@ -80,7 +75,6 @@ Profile Size Predictions, Optimized Reset Flag
 
 ### Added
 - **Size Data Migration**: Now it's possible to read from v1 App's size stats and migrate them to v2 App with same package name.
-- **G+D card Handling**: Better handling with 9eSIM v1 cards.
 
 ## [2.0.1+35] - 2026-01-22
 
@@ -96,7 +90,7 @@ Profile Size Predictions, Optimized Reset Flag
 ## [2.0.1+33] - 2026-01-20
 
 ### Added
-- **Deep Linking Support**: Added Deep Linking support. Now you can use urls such as https://install.lpa.ee/LPA:1$smdp.io$QR-G-5C-1LS-1W1Z9P7 to open the app.
+- **Deep Linking Support**: Added Deep Linking support. Now you can use urls such as https://install.lpa.ee/LPA:1$smdp.example$MATCHING-ID to open the app.
 
 
 ## [2.0.0+32] - 2026-01-20
