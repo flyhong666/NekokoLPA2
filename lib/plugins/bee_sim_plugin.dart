@@ -133,7 +133,14 @@ class BeeSimPlugin extends ProfilePlugin {
       }
 
       log('All rows accepted. Resetting device…');
-      await adapter.resetDevice();
+      try {
+        await adapter.resetDevice();
+      } catch (e) {
+        // A clean reset usually drops the BLE link before acknowledging — the
+        // upload itself already succeeded, so don't fail the whole flow on
+        // post-reset I/O errors.
+        log('Reset returned ${e.runtimeType} (ignored — device is rebooting).');
+      }
       log('Firmware update complete.');
     } catch (e, st) {
       log('Firmware update failed: $e');

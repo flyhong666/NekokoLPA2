@@ -267,6 +267,7 @@ class BeeSimAdapter extends BaseAdapter {
   /// `[0x10, ...]` on success; bytes 49..50 are the crc, 51..52 totalRows,
   /// 53..54 currentRow (all big-endian).
   Future<BeeSimUpgradeStatus> checkUpgrading() async {
+    await _ensureConnected();
     final resp = await _sendCommand(
       Uint8List.fromList([0x00, 0x00, 0x00, 0x00, 0xF4, 0x01, 0x01]),
       'check upgrading',
@@ -307,6 +308,7 @@ class BeeSimAdapter extends BaseAdapter {
     required int currentRow,
     required Uint8List rowBytes,
   }) async {
+    await _ensureConnected();
     final header = Uint8List(4)
       ..[0] = (totalRows >> 8) & 0xFF
       ..[1] = totalRows & 0xFF
@@ -321,15 +323,36 @@ class BeeSimAdapter extends BaseAdapter {
 
   /// Issues the BLE reset command (`A0 3F 00 00 00`) and clears local
   /// initialised state so the next APDU re-opens a channel.
+  ///
+  /// The device usually drops the BLE link as it reboots, so a timeout or
+  /// connect-failed reply is expected and not treated as an error.
   Future<void> resetDevice() async {
     try {
       await _sendCommand(
         Uint8List.fromList([0xA0, 0x3F, 0x00, 0x00, 0x00]),
         'reset',
       );
+    } on AppException catch (e) {
+      if (e.code != AppErrorCode.ERROR_BLUETOOTH_TIMEOUT &&
+          e.code != AppErrorCode.ERROR_BLUETOOTH_CONNECT_FAILED) {
+        rethrow;
+      }
+      _log.info('Reset acknowledged by disconnect (${e.code.name}).');
     } finally {
       _initialized = false;
     }
+  }
+
+  Future<void> _ensureConnected() async {
+    if (_initialized && _isBeeSimConnected && _txChar != null) return;
+    final reader = connectedReader;
+    if (reader == null) {
+      throw AppException(
+        AppErrorCode.ERROR_BLUETOOTH_NOT_CONNECTED,
+        message: 'BeeSIM reader is not selected.',
+      );
+    }
+    await connect(reader);
   }
 
   int _beU16(Uint8List bytes, int offset) =>
