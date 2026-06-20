@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter/services.dart';
 import '../adapter/euicc_adapter.dart';
 import '../adapter/composite_adapter.dart';
@@ -1186,7 +1187,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     return ListView.builder(
       padding: const EdgeInsets.all(20),
-      cacheExtent: 1000,
+      scrollCacheExtent: const ScrollCacheExtent.pixels(1000),
       itemCount: _notifications.length,
       itemBuilder: (context, index) {
         final notif = _notifications[index];

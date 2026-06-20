@@ -128,7 +128,7 @@ class StyledHeaderScaffold extends StatelessWidget {
                     ),
                   ),
                   // Optional actions
-                  if (actions != null) ...actions!,
+                  ...?actions,
                 ],
               ),
             ),

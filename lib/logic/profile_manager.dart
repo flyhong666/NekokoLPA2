@@ -1289,10 +1289,18 @@ class ProfileManager {
       int totalSentBytes = 0;
 
       final mss = AppSettings().mss;
+      _log.info(
+        "Loading BoundProfilePackage: totalBytes=$totalSize, "
+        "segments=${segments.length}, mss=$mss",
+      );
 
       try {
         for (int i = 0; i < segments.length; i++) {
           final segment = segments[i];
+          _log.fine(
+            "BPP segment ${i + 1}/${segments.length}: "
+            "${segment.length} bytes",
+          );
 
           int offset = 0;
           int blockNumber = 0; // Reset for each segment, 0-based as in lpac
@@ -1336,6 +1344,10 @@ class ProfileManager {
         if (e is ApduException) {
           _log.warning(
             "BPP Load failed with APDU error: ${e.message} (SW=${e.sw1.toRadixString(16)}${e.sw2.toRadixString(16)}). searching for detailed error...",
+          );
+          _log.warning(
+            "BPP progress at failure: sentBytes=$totalSentBytes, "
+            "totalBytes=$totalSize",
           );
           onStatusMessage?.call("Analyzing installation failure...");
           await _handleInstallationFailure(channel);

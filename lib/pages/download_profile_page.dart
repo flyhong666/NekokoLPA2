@@ -219,6 +219,13 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
     setState(() {});
   }
 
+  Uint8List _decodeEs9Base64(dynamic value, String fieldName) {
+    if (value is! String || value.isEmpty) {
+      throw Exception("Missing $fieldName in SM-DP+ response");
+    }
+    return base64Decode(value.replaceAll(RegExp(r'\s+'), ''));
+  }
+
   String? get _smdpErrorText {
     if (!_showValidationErrors && !_touchedFields.contains('smdp')) return null;
     final l10n = AppLocalizations.of(context)!;
@@ -276,6 +283,7 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
   }
 
   void _startPreview() async {
+     _log.info("Download preview requested");
      setState(() {
        _showValidationErrors = true;
        _touchedFields.addAll(['full', 'smdp', 'matchingId', 'cc', 'oid']);
@@ -287,6 +295,10 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
 
      final code = _controller.text.trim();
      final ac = ActivationCode.parse(code);
+     _log.info(
+       "Download preview activation code parsed: "
+       "hasAc=${ac != null}, inputLength=${code.length}",
+     );
      
      if (ac == null) {
        setState(() => _error = AppLocalizations.of(context)!.invalidAcFormatDetailed);
@@ -379,10 +391,10 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
             throw Exception("Missing transactionId in InitiateAuthentication response");
           }
           
-          final serverSigned1 = base64Decode(initAuthResp['serverSigned1']);
-          final serverSignature1 = base64Decode(initAuthResp['serverSignature1']);
-          final euiccCiPKId = base64Decode(initAuthResp['euiccCiPKIdToBeUsed']);
-          final serverCert = base64Decode(initAuthResp['serverCertificate']);
+          final serverSigned1 = _decodeEs9Base64(initAuthResp['serverSigned1'], 'serverSigned1');
+          final serverSignature1 = _decodeEs9Base64(initAuthResp['serverSignature1'], 'serverSignature1');
+          final euiccCiPKId = _decodeEs9Base64(initAuthResp['euiccCiPKIdToBeUsed'], 'euiccCiPKIdToBeUsed');
+          final serverCert = _decodeEs9Base64(initAuthResp['serverCertificate'], 'serverCertificate');
           final txnId = initAuthResp['transactionId'] as String;
 
           _serverSigned1 = serverSigned1;
@@ -423,7 +435,7 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
           
           // Process and check success
           if (clientResp['profileMetadata'] != null) {
-              final metadataBytes = base64Decode(clientResp['profileMetadata']);
+              final metadataBytes = _decodeEs9Base64(clientResp['profileMetadata'], 'profileMetadata');
               _log.fine("Profile Metadata (Hex): ${HexUtils.bytesToHex(metadataBytes)}");
               final metadata = StoreMetadataRequest.decode(metadataBytes);
               _log.info("Decoded Metadata: ICCID=${metadata.iccid != null ? HexUtils.bytesToHex(metadata.iccid!) : 'null'}, Provider=${metadata.serviceProviderName}");
@@ -432,9 +444,9 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
                 authenticateClientOk: AuthenticateClientOk(
                   transactionId: Uint8List.fromList(utf8.encode(txnId)),
                   profileMetadata: metadata,
-                  smdpSigned2: clientResp['smdpSigned2'] != null ? SmdpSigned2.decode(base64Decode(clientResp['smdpSigned2'])) : null,
-                  smdpSignature2: clientResp['smdpSignature2'] != null ? base64Decode(clientResp['smdpSignature2']) : null,
-                  smdpCertificate: clientResp['smdpCertificate'] != null ? Certificate.decode(base64Decode(clientResp['smdpCertificate'])) : null,
+                  smdpSigned2: clientResp['smdpSigned2'] != null ? SmdpSigned2.decode(_decodeEs9Base64(clientResp['smdpSigned2'], 'smdpSigned2')) : null,
+                  smdpSignature2: clientResp['smdpSignature2'] != null ? _decodeEs9Base64(clientResp['smdpSignature2'], 'smdpSignature2') : null,
+                  smdpCertificate: clientResp['smdpCertificate'] != null ? Certificate.decode(_decodeEs9Base64(clientResp['smdpCertificate'], 'smdpCertificate')) : null,
                 ),
               );
               
@@ -523,14 +535,21 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
       _statusMessage = AppLocalizations.of(context)!.preparingDownload;
     });
 
-    int? bppSize;
-    Channel? channel;
-    try {
+     int? bppSize;
+     Channel? channel;
+     try {
+      _log.info("Profile download requested");
       await widget.adapter.connect(widget.reader);
       
       final ac = ActivationCode.parse(_controller.text)!;
+      _log.info(
+        "Profile download context: reader=${widget.reader.id}, "
+        "smdp=${ac.smdpAddress}, matchingIdLength=${ac.matchingId.length}, "
+        "hasConfirmationCode=${_session!.confirmationCode != null}",
+      );
       // Use existing session channel if available, or start a new one
       if (_sessionChannel != null) {
+        _log.info("Reusing existing authenticated session channel");
         channel = _sessionChannel;
       } else {
         _log.info("Session channel lost, opening new channel and re-authenticating...");
@@ -602,13 +621,18 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
           transactionId: txnId,
           prepareDownloadResponse: base64Encode(prepareDownloadResp.encode())
         );
+        _log.info(
+          "getBoundProfilePackage response hasBpp="
+          "${bppResp['boundProfilePackage'] != null}",
+        );
 
         if (bppResp['boundProfilePackage'] == null) {
           throw Exception("No boundProfilePackage returned from SM-DP+");
         }
 
-        final bppBytes = base64Decode(bppResp['boundProfilePackage']);
+        final bppBytes = _decodeEs9Base64(bppResp['boundProfilePackage'], 'boundProfilePackage');
         bppSize = bppBytes.length;
+        _log.info("Decoded bound profile package: $bppSize bytes");
 
         // Step 3: Load Bound Profile Package to eUICC
         setState(() => _statusMessage = AppLocalizations.of(context)!.installing(0, bppBytes.length));
@@ -673,10 +697,10 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
                  initAuthResp['euiccCiPKIdToBeUsed'] != null && 
                  initAuthResp['serverCertificate'] != null) {
                    
-                 final serverSigned1 = base64Decode(initAuthResp['serverSigned1']);
-                 final serverSignature1 = base64Decode(initAuthResp['serverSignature1']);
-                 final euiccCiPKId = base64Decode(initAuthResp['euiccCiPKIdToBeUsed']);
-                 final serverCert = base64Decode(initAuthResp['serverCertificate']);
+                 final serverSigned1 = _decodeEs9Base64(initAuthResp['serverSigned1'], 'serverSigned1');
+                 final serverSignature1 = _decodeEs9Base64(initAuthResp['serverSignature1'], 'serverSignature1');
+                 final euiccCiPKId = _decodeEs9Base64(initAuthResp['euiccCiPKIdToBeUsed'], 'euiccCiPKIdToBeUsed');
+                 final serverCert = _decodeEs9Base64(initAuthResp['serverCertificate'], 'serverCertificate');
                  
                  // 3. AuthenticateServer to get fresh eUICCInfo2
                  final finalAuthResp = await widget.profileManager.authenticateServer(
@@ -780,8 +804,13 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
           } catch (_) {}
         }
       }
-    } catch (e) {
-      _handleInstallationFailure(e, _authServerResponse, bppSize: bppSize);
+    } catch (e, stackTrace) {
+      _handleInstallationFailure(
+        e,
+        _authServerResponse,
+        bppSize: bppSize,
+        stackTrace: stackTrace,
+      );
     } finally {
       // Keep connection alive between transactions
     }
@@ -2007,8 +2036,9 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
     dynamic e,
     AuthenticateResponseOk? authBefore, {
     int? bppSize,
+    StackTrace? stackTrace,
   }) {
-    _log.severe("Download failed: $e");
+    _log.severe("Download failed: $e", e, stackTrace);
     if (mounted) {
       setState(() {
         _isLoading = false;

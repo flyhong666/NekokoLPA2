@@ -70,20 +70,28 @@ class SmdpClient {
           };
 
     final body = jsonEncode(bodyData);
+    final stopwatch = Stopwatch()..start();
 
     try {
-      _log.info("SM-DP+ POST: $url");
+      _log.info("SM-DP+ POST $endpoint -> $url (bodyBytes=${body.length})");
       _log.fine("HEADERS: $headers");
       _log.fine("BODY: $body");
 
       final response = await http.post(url, headers: headers, body: body);
 
-      _log.info("SM-DP+ RESPONSE: ${response.statusCode}");
+      stopwatch.stop();
+      _log.info(
+        "SM-DP+ RESPONSE $endpoint <- ${response.statusCode} "
+        "(${stopwatch.elapsedMilliseconds}ms, bodyBytes=${response.body.length})",
+      );
       _log.fine("BODY: ${response.body}");
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         if (response.body.isEmpty) return {};
         final data = jsonDecode(response.body);
+        if (data is Map<String, dynamic>) {
+          _log.info("SM-DP+ RESPONSE $endpoint keys: ${data.keys.join(', ')}");
+        }
         if (checkStatus) {
           _checkResponse(data, response.statusCode);
         }
@@ -96,8 +104,14 @@ class SmdpClient {
     } on SmdpException {
       rethrow;
     } catch (e, stackTrace) {
+      stopwatch.stop();
       if (e.toString().contains("SM-DP+")) rethrow;
-      _log.severe("SmdpClient connection error: $e", e, stackTrace);
+      _log.severe(
+        "SmdpClient connection error on $endpoint after "
+        "${stopwatch.elapsedMilliseconds}ms: $e",
+        e,
+        stackTrace,
+      );
       throw Exception("Failed to contact SM-DP+ at $smdpAddress: $e");
     }
   }
