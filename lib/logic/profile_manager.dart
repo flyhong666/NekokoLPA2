@@ -9,6 +9,7 @@ import '../models/euicc_profile.dart';
 import '../models/asn1/rsp_definitions.g.dart';
 import '../models/asn1/simple_reader.dart';
 import '../utils/hex_utils.dart';
+import '../utils/imei_codec.dart';
 import '../utils/apdu_exception.dart';
 import '../utils/error_codes.dart';
 
@@ -1107,10 +1108,11 @@ class ProfileManager {
     Channel? useChannel,
   }) async {
     return _runOnChannel(useChannel, (channel) async {
-      // Get persistent IMEI/TAC from settings if not provided
+      // Get persistent TAC from settings if not provided. Full IMEI is only
+      // sent when explicitly requested by the caller.
       final settings = AppSettings();
       final actualTac = tac ?? await settings.getTac();
-      final actualImei = imei ?? await settings.getImei();
+      final actualImei = imei == null ? null : encodeDeviceInfoImei(imei);
 
       // Construct DeviceInfo
       final deviceInfo = DeviceInfo(
