@@ -21,6 +21,7 @@ import 'pages/reminder_details_page.dart';
 import 'pages/main_tab_screen.dart';
 
 import 'utils/migration_helper.dart';
+import 'utils/locale_utils.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
@@ -209,16 +210,14 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return const _AppSettingsScope(child: _RootMaterialApp());
+    return const _AppSettingsScope();
   }
 }
 
-/// Rebuilds its child only when AppSettings fields that affect MaterialApp
-/// (themeMode, themeType, locale) change. Avoids rebuilding the whole app on
-/// unrelated settings updates like setOnline or setLastSelectedReader.
+/// Rebuilds when AppSettings fields that affect MaterialApp
+/// (themeMode, themeType, locale) change.
 class _AppSettingsScope extends StatefulWidget {
-  final Widget child;
-  const _AppSettingsScope({required this.child});
+  const _AppSettingsScope();
 
   @override
   State<_AppSettingsScope> createState() => _AppSettingsScopeState();
@@ -259,30 +258,15 @@ class _AppSettingsScopeState extends State<_AppSettingsScope> {
   }
 
   @override
-  Widget build(BuildContext context) => widget.child;
-}
-
-class _RootMaterialApp extends StatelessWidget {
-  const _RootMaterialApp();
-
-  @override
   Widget build(BuildContext context) {
-    final loc = AppSettings().locale;
-    Locale? resolvedLocale;
-    if (loc != null) {
-      final parts = loc.replaceAll('-', '_').split('_');
-      resolvedLocale = Locale.fromSubtags(
-        languageCode: parts[0],
-        countryCode: parts.length > 1 ? parts[1] : null,
-      );
-    }
+    final resolvedLocale = localeFromPreference(_locale);
     return MaterialApp(
       navigatorKey: navigatorKey,
       scaffoldMessengerKey: scaffoldMessengerKey,
       title: AppConfig.appName,
       theme: AppTheme.theme(false),
       darkTheme: AppTheme.theme(true),
-      themeMode: AppSettings().themeMode,
+      themeMode: _themeMode,
       locale: resolvedLocale,
       home: const MainTabScreen(),
       routes: PluginManager().allRoutes,
@@ -294,27 +278,7 @@ class _RootMaterialApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
-      localeResolutionCallback: _resolveLocale,
+      localeResolutionCallback: resolveSupportedLocale,
     );
-  }
-
-  static Locale _resolveLocale(
-    Locale? locale,
-    Iterable<Locale> supportedLocales,
-  ) {
-    if (locale != null) {
-      for (final supportedLocale in supportedLocales) {
-        if (supportedLocale.languageCode == locale.languageCode &&
-            supportedLocale.countryCode == locale.countryCode) {
-          return supportedLocale;
-        }
-      }
-      for (final supportedLocale in supportedLocales) {
-        if (supportedLocale.languageCode == locale.languageCode) {
-          return supportedLocale;
-        }
-      }
-    }
-    return const Locale('en', 'US');
   }
 }
