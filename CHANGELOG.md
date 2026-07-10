@@ -2,6 +2,11 @@
 
 All notable changes to NekokoLPA2 will be documented in this file.
 
+## [2.1.5+575] - 2026-07-10
+
+### Added
+- Added Russian localization from Crowdin.
+
 ## [2.1.4+574] - 2026-07-10
 
 ### Fixed
