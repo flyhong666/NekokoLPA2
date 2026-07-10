@@ -776,10 +776,10 @@
       }
     }
   },
-  "deviceImei": "设备 IMEI (TAC)",
+  "deviceImei": "设备 TAC",
   "deviceImeiSubtitle": "用于配置下载",
-  "editDeviceImei": "编辑设备 IMEI",
-  "editDeviceImeiInfo": "输入 16 位数 (8 字节)。标准 IMEI 以 35 开始。",
-  "imeiDigits": "IMEI (Digits)",
+  "editDeviceImei": "编辑设备 TAC",
+  "editDeviceImeiInfo": "输入 8 位 TAC，或 15 位 IMEI。默认 TAC：35383741。",
+  "imeiDigits": "TAC 或 IMEI 数字",
   "importAction": "导入"
 }

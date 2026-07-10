@@ -10,6 +10,7 @@ import '../services/database_service.dart';
 import '../adapter/ble/ble_manager.dart';
 import '../services/nbridge_service.dart';
 import '../utils/platform_adapter.dart';
+import '../utils/imei_codec.dart';
 import '../version.dart';
 import '../config.dart';
 import 'package:yaml/yaml.dart';
@@ -1130,26 +1131,25 @@ class AppSettings extends ChangeNotifier {
     return hex;
   }
 
-  Future<void> setImeiString(String? hex) async {
-    if (hex == null || hex.isEmpty) {
+  Future<void> setImeiString(String? value) async {
+    if (value == null || value.trim().isEmpty) {
       await _prefs?.remove('deviceImei');
       _cachedImei = null;
       _cachedTac = null;
     } else {
-      // Validate: must be 16 hex chars (8 bytes)
-      final clean = hex.replaceAll(RegExp(r'[^0-9]'), '');
-      if (clean.length != 16) {
-        throw Exception('IMEI must be exactly 16 digits');
-      }
-      await _prefs?.setString('deviceImei', clean);
+      final imei = storedImeiBytesFromDigits(value);
+      final stored = imei
+          .map((b) => b.toRadixString(16).padLeft(2, '0'))
+          .join();
+      await _prefs?.setString('deviceImei', stored);
       _cachedImei = null;
       _cachedTac = null;
     }
     notifyListeners();
   }
 
-  /// Gets or generates a persistent IMEI (8 bytes / 16 digits) for profile downloads
-  /// IMEI starts with 0x35 (decimal digits 3 and 5) and has random remaining digits
+  /// Gets or generates a persistent IMEI (8 bytes / 16 digits) for profile downloads.
+  /// The default generated TAC is 35383741.
   Future<Uint8List> getImei() async {
     if (_cachedImei != null) return _cachedImei!;
 
@@ -1219,47 +1219,7 @@ class AppSettings extends ChangeNotifier {
 
     final random = Random(seed);
 
-    // IMEI is 15 digits + 1 filler = 16 digits (8 bytes)
-    final digits = List<int>.filled(15, 0);
-
-    // 1. First two digits always '3' and '5'
-    digits[0] = 3;
-    digits[1] = 5;
-
-    // 2. Generate digits 3-14 (12 digits) randomly
-    for (int i = 2; i < 14; i++) {
-      digits[i] = random.nextInt(10);
-    }
-
-    // 3. Calculate 15th digit (Luhn check digit)
-    digits[14] = _calculateLuhnChecksum(digits.sublist(0, 14));
-
-    // 4. Convert to 8 bytes BCD
-    final imei = Uint8List(8);
-    for (int i = 0; i < 7; i++) {
-      imei[i] = (digits[i * 2] << 4) | digits[i * 2 + 1];
-    }
-    // Last byte: 15th digit + '0' filler
-    imei[7] = (digits[14] << 4) | 0;
-
-    return imei;
-  }
-
-  int _calculateLuhnChecksum(List<int> digits) {
-    int sum = 0;
-    for (int i = 0; i < digits.length; i++) {
-      int d = digits[i];
-      if (i % 2 != 0) {
-        // Double every second digit (2nd, 4th, etc. indexed 1, 3, 5...)
-        d *= 2;
-        if (d > 9) {
-          d = (d % 10) + 1; // sum of digits
-        }
-      }
-      sum += d;
-    }
-    int checkDigit = (10 - (sum % 10)) % 10;
-    return checkDigit;
+    return storedImeiBytesFromDigits(defaultDeviceTac, random: random);
   }
 
   Set<String> _estkMaxEids = {};

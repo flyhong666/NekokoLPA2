@@ -776,10 +776,10 @@
       }
     }
   },
-  "deviceImei": "デバイスの IMEI (TAC)",
+  "deviceImei": "デバイス TAC",
   "deviceImeiSubtitle": "プロファイルのダウンロードに使用されます",
-  "editDeviceImei": "デバイスの IMEI を編集",
-  "editDeviceImeiInfo": "16 桁 (8 バイト) を入力してください。標準の IMEI は 35 から始まります。",
-  "imeiDigits": "IMEI (数字)",
+  "editDeviceImei": "デバイス TAC を編集",
+  "editDeviceImeiInfo": "8 桁の TAC、または 15 桁の IMEI を入力してください。既定の TAC: 35383741。",
+  "imeiDigits": "TAC または IMEI の数字",
   "importAction": "インポート"
 }

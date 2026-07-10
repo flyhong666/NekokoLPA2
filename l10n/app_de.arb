@@ -776,10 +776,10 @@
       }
     }
   },
-  "deviceImei": "Device IMEI (TAC)",
+  "deviceImei": "Geräte-TAC",
   "deviceImeiSubtitle": "Used for profile downloads",
-  "editDeviceImei": "Edit Device IMEI",
-  "editDeviceImeiInfo": "Enter 16 digits (8 bytes). Standard IMEIs start with 35.",
-  "imeiDigits": "IMEI (Digits)",
+  "editDeviceImei": "Geräte-TAC bearbeiten",
+  "editDeviceImeiInfo": "8-stellige TAC oder 15-stellige IMEI eingeben. Standard-TAC: 35383741.",
+  "imeiDigits": "TAC- oder IMEI-Zahlen",
   "importAction": "Import"
 }

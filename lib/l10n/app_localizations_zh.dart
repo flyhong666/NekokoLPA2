@@ -1976,19 +1976,19 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get deviceImei => '设备 IMEI (TAC)';
+  String get deviceImei => '设备 TAC';
 
   @override
   String get deviceImeiSubtitle => '用于配置下载';
 
   @override
-  String get editDeviceImei => '编辑设备 IMEI';
+  String get editDeviceImei => '编辑设备 TAC';
 
   @override
-  String get editDeviceImeiInfo => '输入 16 位数 (8 字节)。标准 IMEI 以 35 开始。';
+  String get editDeviceImeiInfo => '输入 8 位 TAC，或 15 位 IMEI。默认 TAC：35383741。';
 
   @override
-  String get imeiDigits => 'IMEI (Digits)';
+  String get imeiDigits => 'TAC 或 IMEI 数字';
 
   @override
   String get importAction => '导入';
@@ -3980,20 +3980,20 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String get deviceImei => 'Device IMEI (TAC)';
+  String get deviceImei => 'Device TAC';
 
   @override
   String get deviceImeiSubtitle => 'Used for profile downloads';
 
   @override
-  String get editDeviceImei => 'Edit Device IMEI';
+  String get editDeviceImei => 'Edit Device TAC';
 
   @override
   String get editDeviceImeiInfo =>
-      'Enter 16 digits (8 bytes). Standard IMEIs start with 35.';
+      'Enter an 8-digit TAC, or a 15-digit IMEI. Default TAC: 35383741.';
 
   @override
-  String get imeiDigits => 'IMEI (Digits)';
+  String get imeiDigits => 'TAC or IMEI digits';
 
   @override
   String get importAction => 'Import';

@@ -1999,20 +1999,20 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get deviceImei => 'デバイスの IMEI (TAC)';
+  String get deviceImei => 'デバイス TAC';
 
   @override
   String get deviceImeiSubtitle => 'プロファイルのダウンロードに使用されます';
 
   @override
-  String get editDeviceImei => 'デバイスの IMEI を編集';
+  String get editDeviceImei => 'デバイス TAC を編集';
 
   @override
   String get editDeviceImeiInfo =>
-      '16 桁 (8 バイト) を入力してください。標準の IMEI は 35 から始まります。';
+      '8 桁の TAC、または 15 桁の IMEI を入力してください。既定の TAC: 35383741。';
 
   @override
-  String get imeiDigits => 'IMEI (数字)';
+  String get imeiDigits => 'TAC または IMEI の数字';
 
   @override
   String get importAction => 'インポート';

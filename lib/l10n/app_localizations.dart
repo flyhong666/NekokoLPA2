@@ -3858,7 +3858,7 @@ abstract class AppLocalizations {
   /// No description provided for @deviceImei.
   ///
   /// In en, this message translates to:
-  /// **'Device IMEI (TAC)'**
+  /// **'Device TAC'**
   String get deviceImei;
 
   /// No description provided for @deviceImeiSubtitle.
@@ -3870,19 +3870,19 @@ abstract class AppLocalizations {
   /// No description provided for @editDeviceImei.
   ///
   /// In en, this message translates to:
-  /// **'Edit Device IMEI'**
+  /// **'Edit Device TAC'**
   String get editDeviceImei;
 
   /// No description provided for @editDeviceImeiInfo.
   ///
   /// In en, this message translates to:
-  /// **'Enter 16 digits (8 bytes). Standard IMEIs start with 35.'**
+  /// **'Enter an 8-digit TAC, or a 15-digit IMEI. Default TAC: 35383741.'**
   String get editDeviceImeiInfo;
 
   /// No description provided for @imeiDigits.
   ///
   /// In en, this message translates to:
-  /// **'IMEI (Digits)'**
+  /// **'TAC or IMEI digits'**
   String get imeiDigits;
 
   /// No description provided for @importAction.

@@ -3,7 +3,6 @@ import '../settings/app_settings.dart';
 import '../theme/app_theme.dart';
 import '../widgets/styled_header_scaffold.dart';
 import 'dart:io' as io;
-import 'dart:math';
 import 'dart:typed_data';
 import 'package:path/path.dart' as path;
 import '../services/database_service.dart';
@@ -22,6 +21,7 @@ import 'settings/tags_and_reminders_page.dart';
 
 import '../l10n/app_localizations.dart';
 import '../utils/platform_adapter.dart';
+import '../utils/imei_codec.dart';
 import '../services/update_service.dart';
 import '../utils/update_utils.dart';
 
@@ -1538,9 +1538,9 @@ class SettingsPage extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return FutureBuilder<Uint8List>(
-      future: settings.getImei(),
+      future: settings.getTac(),
       builder: (context, snapshot) {
-        final imeiHex = snapshot.hasData
+        final tacDigits = snapshot.hasData
             ? snapshot.data!
                   .map((b) => b.toRadixString(16).padLeft(2, '0'))
                   .join()
@@ -1571,7 +1571,7 @@ class SettingsPage extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              imeiHex,
+              tacDigits,
               style: AppTheme.mono(
                 TextStyle(
                   fontSize: 12,
@@ -1581,14 +1581,14 @@ class SettingsPage extends StatelessWidget {
               ),
             ),
           ),
-          onTap: () => _showImeiEditDialog(context, imeiHex),
+          onTap: () => _showImeiEditDialog(context, tacDigits),
         );
       },
     );
   }
 
-  void _showImeiEditDialog(BuildContext context, String currentImei) {
-    final controller = TextEditingController(text: currentImei);
+  void _showImeiEditDialog(BuildContext context, String currentTac) {
+    final controller = TextEditingController(text: currentTac);
 
     showDialog(
       context: context,
@@ -1609,30 +1609,19 @@ class SettingsPage extends StatelessWidget {
               autofocus: true,
               decoration: InputDecoration(
                 labelText: AppLocalizations.of(context)!.imeiDigits,
-                hintText: "3500000000000000",
+                hintText: defaultDeviceTac,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.refresh_rounded),
                   onPressed: () {
-                    final random = Uint8List(8);
-                    random[0] = 0x35;
-                    final r = Random();
-                    for (int i = 1; i < 8; i++) {
-                      // Generate BCD digits (0-9)
-                      int high = r.nextInt(10);
-                      int low = r.nextInt(10);
-                      random[i] = (high << 4) | low;
-                    }
-                    controller.text = random
-                        .map((b) => b.toRadixString(16).padLeft(2, '0'))
-                        .join();
+                    controller.text = defaultDeviceTac;
                   },
                 ),
               ),
               style: AppTheme.mono(),
-              maxLength: 16,
+              maxLength: 15,
             ),
           ],
         ),

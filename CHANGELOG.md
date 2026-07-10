@@ -2,6 +2,12 @@
 
 All notable changes to NekokoLPA2 will be documented in this file.
 
+## [2.1.4+574] - 2026-07-10
+
+### Fixed
+- Show and edit the device TAC instead of the internal 16-digit stored IMEI encoding.
+- Use TAC `35383741` by default while still accepting a full 15-digit IMEI.
+
 ## [2.1.0+569] - 2026-06-01
 
 ### Changed

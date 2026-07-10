@@ -2079,20 +2079,20 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get deviceImei => 'Device IMEI (TAC)';
+  String get deviceImei => 'Geräte-TAC';
 
   @override
   String get deviceImeiSubtitle => 'Used for profile downloads';
 
   @override
-  String get editDeviceImei => 'Edit Device IMEI';
+  String get editDeviceImei => 'Geräte-TAC bearbeiten';
 
   @override
   String get editDeviceImeiInfo =>
-      'Enter 16 digits (8 bytes). Standard IMEIs start with 35.';
+      '8-stellige TAC oder 15-stellige IMEI eingeben. Standard-TAC: 35383741.';
 
   @override
-  String get imeiDigits => 'IMEI (Digits)';
+  String get imeiDigits => 'TAC- oder IMEI-Zahlen';
 
   @override
   String get importAction => 'Import';
