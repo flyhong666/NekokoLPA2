@@ -1108,11 +1108,13 @@ class ProfileManager {
     Channel? useChannel,
   }) async {
     return _runOnChannel(useChannel, (channel) async {
-      // Get persistent TAC from settings if not provided. Full IMEI is only
-      // sent when explicitly requested by the caller.
+      // TAC-only remains the default. A full IMEI is sent when explicitly
+      // supplied by the caller or when the user entered 15 digits in settings.
       final settings = AppSettings();
       final actualTac = tac ?? await settings.getTac();
-      final actualImei = imei == null ? null : encodeDeviceInfoImei(imei);
+      final actualImei = imei == null
+          ? await settings.getDeviceInfoImei()
+          : encodeDeviceInfoImei(imei);
 
       // Construct DeviceInfo
       final deviceInfo = DeviceInfo(

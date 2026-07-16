@@ -9,6 +9,7 @@ import '../services/es9plus_service.dart';
 import '../widgets/signing_confirmation_dialog.dart';
 import '../main.dart';
 import '../settings/app_settings.dart';
+import '../utils/imei_codec.dart';
 import 'package:logging/logging.dart';
 
 class SigningLogic {
@@ -20,6 +21,7 @@ class SigningLogic {
     int? tac,
     int? imeiHigh,
     int? imeiLow,
+    String? imei,
   }) async {
     final composite = CompositeAdapter();
     // Use the internal reader listing to get fresh list
@@ -52,7 +54,9 @@ class SigningLogic {
         imeiLow ?? ByteData.sublistView(imeiBytes).getUint32(4, Endian.big);
 
     final tacBytes = tac != null ? convertTac(tac) : null;
-    final imeiBytesFinal = (imeiHigh != null && imeiLow != null)
+    final imeiBytesFinal = imei != null
+        ? storedImeiBytesFromDigits(imei)
+        : (imeiHigh != null && imeiLow != null)
         ? convertImei(imeiHigh, imeiLow)
         : null;
 
@@ -161,15 +165,10 @@ class SigningLogic {
   }
 
   static Uint8List convertTac(int value) {
-    final bdata = ByteData(4);
-    bdata.setUint32(0, value, Endian.big);
-    return bdata.buffer.asUint8List();
+    return tacBytesFromInteger(value);
   }
 
   static Uint8List convertImei(int high, int low) {
-    final bdata = ByteData(8);
-    bdata.setUint32(0, high, Endian.big);
-    bdata.setUint32(4, low, Endian.big);
-    return bdata.buffer.asUint8List();
+    return storedImeiBytesFromIntegerParts(high, low);
   }
 }

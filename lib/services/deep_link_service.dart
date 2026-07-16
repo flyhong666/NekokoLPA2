@@ -222,6 +222,7 @@ class DeepLinkService {
     int? tac;
     int? imeiHigh;
     int? imeiLow;
+    final imei = uri.queryParameters['imei'];
 
     final tacStr = uri.queryParameters['tac'];
     final imei1Str = uri.queryParameters['imei1'];
@@ -265,6 +266,7 @@ class DeepLinkService {
         tac: tac,
         imeiHigh: imeiHigh,
         imeiLow: imeiLow,
+        imei: imei,
       );
 
       if (result != null) {

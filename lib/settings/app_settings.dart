@@ -1126,6 +1126,8 @@ class AppSettings extends ChangeNotifier {
   Uint8List? _cachedImei;
   Uint8List? _cachedTac;
 
+  bool get sendFullImei => _prefs?.getBool('deviceImeiSendFull') ?? false;
+
   String? get imeiString {
     final hex = _prefs?.getString('deviceImei');
     return hex;
@@ -1134,14 +1136,17 @@ class AppSettings extends ChangeNotifier {
   Future<void> setImeiString(String? value) async {
     if (value == null || value.trim().isEmpty) {
       await _prefs?.remove('deviceImei');
+      await _prefs?.remove('deviceImeiSendFull');
       _cachedImei = null;
       _cachedTac = null;
     } else {
+      final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
       final imei = storedImeiBytesFromDigits(value);
       final stored = imei
           .map((b) => b.toRadixString(16).padLeft(2, '0'))
           .join();
       await _prefs?.setString('deviceImei', stored);
+      await _prefs?.setBool('deviceImeiSendFull', digits.length == 15);
       _cachedImei = null;
       _cachedTac = null;
     }
@@ -1200,6 +1205,16 @@ class AppSettings extends ChangeNotifier {
     if (_cachedTac != null) return _cachedTac!;
     await getImei(); // This will populate _cachedTac
     return _cachedTac!;
+  }
+
+  Future<String> getDisplayedImeiDigits() async {
+    final digits = imeiDigitsFromStoredBytes(await getImei());
+    return sendFullImei ? digits : digits.substring(0, 8);
+  }
+
+  Future<Uint8List?> getDeviceInfoImei() async {
+    if (!sendFullImei) return null;
+    return encodeDeviceInfoImei(await getImei());
   }
 
   Future<Uint8List> _generateImei() async {

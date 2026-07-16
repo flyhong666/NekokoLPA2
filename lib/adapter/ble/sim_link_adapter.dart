@@ -6,6 +6,7 @@ import 'package:logging/logging.dart';
 import '../euicc_adapter.dart';
 import '../../utils/hex_utils.dart';
 import '../../utils/error_codes.dart';
+import 'ble_transport_utils.dart';
 
 class SimLinkAdapter extends BaseAdapter {
   static final Logger _log = Logger('SimLinkAdapter');
@@ -15,6 +16,7 @@ class SimLinkAdapter extends BaseAdapter {
   BluetoothCharacteristic? _txChar;
   BluetoothCharacteristic? _rxChar;
   StreamSubscription? _rxSub;
+  StreamSubscription? _connSub;
   String? _lastAtr;
 
   final Guid serviceUuid = Guid('6E400001-B5A3-F393-E0A9-E50E24DCCA9E');
@@ -54,11 +56,18 @@ class SimLinkAdapter extends BaseAdapter {
 
       log.info("Connecting to SimLink device: $deviceId");
       try {
-        await _device!.connect(
-          autoConnect: false,
-          timeout: const Duration(seconds: 10),
-        );
+        await connectBleDevice(_device!, log);
         log.info("Connected to device: $deviceId");
+
+        await _connSub?.cancel();
+        _connSub = _device!.connectionState.listen((state) {
+          if (state == BluetoothConnectionState.disconnected) {
+            log.warning("SimLink disconnected unexpectedly");
+            _txChar = null;
+            _rxChar = null;
+            _stateController.add(EuiccPortState.closed);
+          }
+        });
 
         List<BluetoothService> services = await _device!.discoverServices();
         BluetoothService service = services.firstWhere(
@@ -135,6 +144,8 @@ class SimLinkAdapter extends BaseAdapter {
 
       await _rxSub?.cancel();
       _rxSub = null;
+      await _connSub?.cancel();
+      _connSub = null;
       await _device?.disconnect();
       _device = null;
       _txChar = null;
@@ -229,16 +240,12 @@ class SimLinkAdapter extends BaseAdapter {
     });
 
     try {
-      final bytes = utf8.encode(jsonStr);
-      // Write in chunks based on MTU
-      final mtu = _device!.mtuNow - 10;
-      for (var i = 0; i < bytes.length; i += mtu) {
-        final end = (i + mtu < bytes.length) ? i + mtu : bytes.length;
-        await _txChar!.write(
-          Uint8List.fromList(bytes.sublist(i, end)),
-          withoutResponse: false,
-        );
-      }
+      final bytes = Uint8List.fromList(utf8.encode(jsonStr));
+      await writeBleChunks(
+        device: _device!,
+        characteristic: _txChar!,
+        data: bytes,
+      );
 
       return await completer.future.timeout(
         const Duration(seconds: 15),

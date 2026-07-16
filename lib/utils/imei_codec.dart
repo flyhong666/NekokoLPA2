@@ -10,6 +10,60 @@ Uint8List encodeDeviceInfoImei(List<int> imei) {
   return _encodeSwappedBcd(digits);
 }
 
+/// Normalizes the two 32-bit values used by the signing bridge.
+///
+/// Older callers pass packed BCD bytes split into two integers, while newer
+/// callers may split an ordinary 15-digit IMEI as one unsigned 64-bit integer.
+/// Accept both representations at this API boundary.
+Uint8List storedImeiBytesFromIntegerParts(int high, int low) {
+  final normalizedHigh = high & 0xffffffff;
+  final normalizedLow = low & 0xffffffff;
+  final bytes = ByteData(8)
+    ..setUint32(0, normalizedHigh, Endian.big)
+    ..setUint32(4, normalizedLow, Endian.big);
+  final packed = bytes.buffer.asUint8List();
+
+  try {
+    imeiDigitsFromStoredBytes(packed);
+    return packed;
+  } on FormatException {
+    final numeric =
+        (BigInt.from(normalizedHigh) << 32) | BigInt.from(normalizedLow);
+    final digits = numeric.toString();
+    if (digits.length != 15) {
+      throw FormatException(
+        'IMEI integer must contain exactly 15 decimal digits',
+      );
+    }
+    return _encodeStoredBytes(digits);
+  }
+}
+
+/// Accepts either an ordinary 8-digit TAC integer or a legacy packed-BCD
+/// integer and returns the four bytes expected by deviceInfo.tac.
+Uint8List tacBytesFromInteger(int value) {
+  final decimal = value.toString();
+  if (RegExp(r'^[0-9]{8}$').hasMatch(decimal)) {
+    return Uint8List.fromList(
+      List.generate(
+        4,
+        (index) =>
+            int.parse(decimal.substring(index * 2, index * 2 + 2), radix: 16),
+      ),
+    );
+  }
+
+  final normalized = value & 0xffffffff;
+  final bytes = ByteData(4)..setUint32(0, normalized, Endian.big);
+  final packed = bytes.buffer.asUint8List();
+  for (final byte in packed) {
+    if ((byte >> 4) > 9 || (byte & 0x0f) > 9) {
+      throw FormatException('TAC must contain exactly 8 decimal digits');
+    }
+  }
+  return packed;
+}
+
 /// Reads IMEI digits from the app's persisted byte format.
 ///
 /// The settings value is 8 bytes in ordinary digit order, with the final

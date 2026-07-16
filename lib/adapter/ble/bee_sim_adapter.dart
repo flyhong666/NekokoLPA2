@@ -5,6 +5,7 @@ import 'package:logging/logging.dart';
 import '../euicc_adapter.dart';
 import '../../utils/hex_utils.dart';
 import '../../utils/error_codes.dart';
+import 'ble_transport_utils.dart';
 
 /// Reports current firmware-row progress while [BeeSimAdapter.uploadFirmware]
 /// streams data to the device. Carries the row index and the total number of
@@ -98,10 +99,7 @@ class BeeSimAdapter extends BaseAdapter {
               );
         }
 
-        await _device!.connect(
-          autoConnect: false,
-          timeout: const Duration(seconds: 10),
-        );
+        await connectBleDevice(_device!, _log);
 
         _connSub?.cancel();
         _isBeeSimConnected = true;
@@ -381,8 +379,13 @@ class BeeSimAdapter extends BaseAdapter {
         () =>
             "[BeeSIM $label] TX frame ${i + 1}/${frames.length} len=${f.length} data=${HexUtils.bytesToHex(f)}",
       );
-      await _txChar!.write(f, withoutResponse: withoutResp);
-      if (withoutResp || frames.length > 1) {
+      await writeBleChunks(
+        device: _device!,
+        characteristic: _txChar!,
+        data: f,
+        maxChunkSize: 20,
+      );
+      if (!withoutResp && frames.length > 1) {
         await Future.delayed(const Duration(milliseconds: 10));
       }
     }

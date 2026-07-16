@@ -1,10 +1,11 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
 import 'package:ble/ble.dart';
 import 'package:logging/logging.dart';
 import '../euicc_adapter.dart';
 import '../../utils/hex_utils.dart';
 import '../../utils/error_codes.dart';
+import 'ble_transport_utils.dart';
 
 class RedBle2Adapter extends BaseAdapter {
   static final Logger _log = Logger('RedBle2Adapter');
@@ -14,6 +15,7 @@ class RedBle2Adapter extends BaseAdapter {
   BluetoothCharacteristic? _txChar;
   BluetoothCharacteristic? _rxChar;
   StreamSubscription? _rxSub;
+  StreamSubscription? _connSub;
   String? _lastAtr;
 
   static final Guid _serviceUuid = Guid('4553');
@@ -51,11 +53,18 @@ class RedBle2Adapter extends BaseAdapter {
 
       log.info("Connecting to RedBle2 device: $deviceId");
       try {
-        await _device!.connect(
-          autoConnect: false,
-          timeout: const Duration(seconds: 10),
-        );
+        await connectBleDevice(_device!, log);
         log.info("Connected to device: $deviceId");
+
+        await _connSub?.cancel();
+        _connSub = _device!.connectionState.listen((state) {
+          if (state == BluetoothConnectionState.disconnected) {
+            log.warning("RedBle2 disconnected unexpectedly");
+            _txChar = null;
+            _rxChar = null;
+            _stateController.add(EuiccPortState.closed);
+          }
+        });
 
         final services = await _device!.discoverServices();
         final service = services.firstWhere(
@@ -116,6 +125,8 @@ class RedBle2Adapter extends BaseAdapter {
       log.info("Disconnecting from RedBle2 device...");
       await _rxSub?.cancel();
       _rxSub = null;
+      await _connSub?.cancel();
+      _connSub = null;
       await _device?.disconnect();
       _device = null;
       _txChar = null;
@@ -229,7 +240,8 @@ class RedBle2Adapter extends BaseAdapter {
 
     _rxSub = _rxChar!.onValueReceived.listen((data) {
       log.info("Received data: $data");
-      if (data[7] & 0x80 == 0x80 &&
+      if (data.length >= _ccidHeaderLength &&
+          data[7] & 0x80 == 0x80 &&
           data[1] == 0 &&
           data[2] == 0 &&
           data[3] == 0 &&
@@ -258,16 +270,11 @@ class RedBle2Adapter extends BaseAdapter {
     });
 
     try {
-      // Chunked write if payload is large
-      final int mtu = kIsWeb ? 20 : 250;
-      final bool canWriteNoResp = _txChar!.properties.writeWithoutResponse;
-      for (var i = 0; i < request.length; i += mtu) {
-        final end = (i + mtu < request.length) ? i + mtu : request.length;
-        await _txChar!.write(
-          request.sublist(i, end),
-          withoutResponse: canWriteNoResp,
-        );
-      }
+      await writeBleChunks(
+        device: _device!,
+        characteristic: _txChar!,
+        data: request,
+      );
 
       return await completer.future.timeout(const Duration(seconds: 15));
     } catch (e) {

@@ -47,4 +47,31 @@ void main() {
     expect(imeiDigitsFromStoredBytes(stored), '353837410000013');
     expect(stored.last & 0x0f, 0);
   });
+
+  test('normalizes a numeric 64-bit IMEI split into integer parts', () {
+    final numeric = BigInt.parse('353837410000013');
+    final high = (numeric >> 32).toInt();
+    final low = (numeric & BigInt.from(0xffffffff)).toInt();
+
+    final stored = storedImeiBytesFromIntegerParts(high, low);
+
+    expect(imeiDigitsFromStoredBytes(stored), '353837410000013');
+    expect(
+      encodeDeviceInfoImei(stored),
+      Uint8List.fromList([0x53, 0x83, 0x73, 0x14, 0x00, 0x00, 0x10, 0xf3]),
+    );
+  });
+
+  test('preserves legacy packed BCD integer parts', () {
+    final stored = storedImeiBytesFromIntegerParts(0x35383741, 0x00000130);
+
+    expect(imeiDigitsFromStoredBytes(stored), '353837410000013');
+  });
+
+  test('normalizes decimal and packed BCD TAC integers', () {
+    final expected = Uint8List.fromList([0x35, 0x38, 0x37, 0x41]);
+
+    expect(tacBytesFromInteger(35383741), expected);
+    expect(tacBytesFromInteger(0x35383741), expected);
+  });
 }

@@ -5,6 +5,7 @@ import 'package:logging/logging.dart';
 import '../euicc_adapter.dart';
 import '../../utils/hex_utils.dart';
 import '../../utils/error_codes.dart';
+import 'ble_transport_utils.dart';
 
 class RedBleAdapter extends BaseAdapter {
   static final Logger _log = Logger('RedBleAdapter');
@@ -14,6 +15,7 @@ class RedBleAdapter extends BaseAdapter {
   BluetoothCharacteristic? _txChar;
   BluetoothCharacteristic? _rxChar;
   StreamSubscription? _rxSub;
+  StreamSubscription? _connSub;
   String? _lastAtr;
 
   final Guid serviceUuid = Guid('4553');
@@ -48,11 +50,18 @@ class RedBleAdapter extends BaseAdapter {
 
       log.info("Connecting to RedBle device: $deviceId");
       try {
-        await _device!.connect(
-          autoConnect: false,
-          timeout: const Duration(seconds: 10),
-        );
+        await connectBleDevice(_device!, log);
         log.info("Connected to device: $deviceId");
+
+        await _connSub?.cancel();
+        _connSub = _device!.connectionState.listen((state) {
+          if (state == BluetoothConnectionState.disconnected) {
+            log.warning("RedBle disconnected unexpectedly");
+            _txChar = null;
+            _rxChar = null;
+            _stateController.add(EuiccPortState.closed);
+          }
+        });
 
         List<BluetoothService> services = await _device!.discoverServices();
         BluetoothService service = services.firstWhere(
@@ -113,6 +122,8 @@ class RedBleAdapter extends BaseAdapter {
       log.info("Disconnecting from RedBle device...");
       await _rxSub?.cancel();
       _rxSub = null;
+      await _connSub?.cancel();
+      _connSub = null;
       await _device?.disconnect();
       _device = null;
       _txChar = null;
@@ -184,22 +195,11 @@ class RedBleAdapter extends BaseAdapter {
     });
 
     try {
-      // Write in chunks if necessary (MTU limits)
-      const chunkSize = 20; // Conservatively small if MTU unknown
-      final bool canWriteNoResp = _txChar!.properties.writeWithoutResponse;
-      // Actually RedBle usually works best with WriteNoResp for speed, but on Web we must be strict.
-      // If ONLY WriteNoResp is available, we use it. If both or only Write, maybe default to Write?
-      // Standard BLE best practice: use what is available.
-
-      for (var i = 0; i < request.length; i += chunkSize) {
-        final end = (i + chunkSize < request.length)
-            ? i + chunkSize
-            : request.length;
-        await _txChar!.write(
-          request.sublist(i, end),
-          withoutResponse: canWriteNoResp,
-        );
-      }
+      await writeBleChunks(
+        device: _device!,
+        characteristic: _txChar!,
+        data: request,
+      );
 
       final response = await completer.future.timeout(
         const Duration(seconds: 15),

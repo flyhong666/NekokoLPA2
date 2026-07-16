@@ -3,7 +3,6 @@ import '../settings/app_settings.dart';
 import '../theme/app_theme.dart';
 import '../widgets/styled_header_scaffold.dart';
 import 'dart:io' as io;
-import 'dart:typed_data';
 import 'package:path/path.dart' as path;
 import '../services/database_service.dart';
 import 'package:file_picker/file_picker.dart';
@@ -1537,15 +1536,10 @@ class SettingsPage extends StatelessWidget {
     final settings = AppSettings();
     final l10n = AppLocalizations.of(context)!;
 
-    return FutureBuilder<Uint8List>(
-      future: settings.getTac(),
+    return FutureBuilder<String>(
+      future: settings.getDisplayedImeiDigits(),
       builder: (context, snapshot) {
-        final tacDigits = snapshot.hasData
-            ? snapshot.data!
-                  .map((b) => b.toRadixString(16).padLeft(2, '0'))
-                  .join()
-                  .toUpperCase()
-            : '........';
+        final imeiDigits = snapshot.data ?? '........';
 
         return _buildResponsiveTile(
           context,
@@ -1571,7 +1565,7 @@ class SettingsPage extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              tacDigits,
+              imeiDigits,
               style: AppTheme.mono(
                 TextStyle(
                   fontSize: 12,
@@ -1581,7 +1575,7 @@ class SettingsPage extends StatelessWidget {
               ),
             ),
           ),
-          onTap: () => _showImeiEditDialog(context, tacDigits),
+          onTap: () => _showImeiEditDialog(context, imeiDigits),
         );
       },
     );

@@ -236,6 +236,7 @@ class _WebBrowserPageState extends State<WebBrowserPage> {
               int? tac;
               int? imeiHigh;
               int? imeiLow;
+              String? imei;
 
               if (options != null) {
                 // Be flexible with types (string vs int)
@@ -250,8 +251,7 @@ class _WebBrowserPageState extends State<WebBrowserPage> {
                       imeiLow = int.tryParse(imeiParts[1].toString());
                     }
                   } else if (options['imei'] is String) {
-                    // Handle potential full IMEI string?
-                    // SigningLogic expects high/low parts (8 bytes total)
+                    imei = options['imei'] as String;
                   }
                 }
               }
@@ -263,6 +263,7 @@ class _WebBrowserPageState extends State<WebBrowserPage> {
                   tac: tac,
                   imeiHigh: imeiHigh,
                   imeiLow: imeiLow,
+                  imei: imei,
                 );
 
                 // If result is null, user cancelled.
@@ -485,6 +486,7 @@ class _WebBrowserPageState extends State<WebBrowserPage> {
     int? tac;
     int? imeiHigh;
     int? imeiLow;
+    final imei = uri.queryParameters['imei'];
 
     final tacStr = uri.queryParameters['tac'];
     final imei1Str = uri.queryParameters['imei1'];
@@ -506,6 +508,7 @@ class _WebBrowserPageState extends State<WebBrowserPage> {
         tac: tac,
         imeiHigh: imeiHigh,
         imeiLow: imeiLow,
+        imei: imei,
       );
 
       if (result != null) {
