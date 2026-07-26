@@ -1301,6 +1301,10 @@ class AppLocalizationsZh extends AppLocalizations {
       '为兼容不同 Android 版本，请将下方所有 SHA-1 证书哈希添加到卡片的 ARA-M 规则中。应用签名密钥升级后，不同 Android 版本可能会检查已验证签名历史中的不同证书。';
 
   @override
+  String get aramSigningHistoryInstruction =>
+      'For compatibility across Android versions, add all SHA-1 certificate hashes below to your card\'s ARA-M rules. After an app signing key upgrade, different Android versions may check different certificates from the verified signing history.';
+
+  @override
   String get certSha1Hash => '证书 SHA-1 哈希';
 
   @override

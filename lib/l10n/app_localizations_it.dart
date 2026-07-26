@@ -1384,6 +1384,10 @@ class AppLocalizationsIt extends AppLocalizations {
       'Per garantire la compatibilità tra le versioni di Android, aggiungi tutti gli hash SHA-1 dei certificati riportati di seguito alle regole ARA-M della scheda. Dopo un aggiornamento della chiave di firma dell\'app, versioni diverse di Android possono verificare certificati diversi nella cronologia delle firme convalidata.';
 
   @override
+  String get aramSigningHistoryInstruction =>
+      'For compatibility across Android versions, add all SHA-1 certificate hashes below to your card\'s ARA-M rules. After an app signing key upgrade, different Android versions may check different certificates from the verified signing history.';
+
+  @override
   String get certSha1Hash => 'Hash Certificato SHA-1';
 
   @override

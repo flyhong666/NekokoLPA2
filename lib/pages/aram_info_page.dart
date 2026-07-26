@@ -70,7 +70,7 @@ class _AramInfoPageState extends State<AramInfoPage> {
             _buildSectionHeader(context, l10n.appCertHashes),
             const SizedBox(height: 12),
             Text(
-              l10n.aramHashInstruction,
+              l10n.aramSigningHistoryInstruction,
               style: TextStyle(
                 color: AppTheme.onSurfaceSubtle(context),
                 height: 1.5,

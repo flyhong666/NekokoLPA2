@@ -2618,8 +2618,14 @@ abstract class AppLocalizations {
   /// No description provided for @aramHashInstruction.
   ///
   /// In en, this message translates to:
-  /// **'For compatibility across Android versions, add all SHA-1 certificate hashes below to your card\'s ARA-M rules. After an app signing key upgrade, different Android versions may check different certificates from the verified signing history.'**
+  /// **'To grant this app access, you may need to add the following SHA-1 certificate hash to your card\'s ARA-M rules. This hash is unique to your current app build\'s certificate.'**
   String get aramHashInstruction;
+
+  /// No description provided for @aramSigningHistoryInstruction.
+  ///
+  /// In en, this message translates to:
+  /// **'For compatibility across Android versions, add all SHA-1 certificate hashes below to your card\'s ARA-M rules. After an app signing key upgrade, different Android versions may check different certificates from the verified signing history.'**
+  String get aramSigningHistoryInstruction;
 
   /// No description provided for @certSha1Hash.
   ///
