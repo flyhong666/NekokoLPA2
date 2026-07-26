@@ -1378,7 +1378,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get aramHashInstruction =>
-      'To grant this app access, you may need to add the following SHA-1 certificate hash to your card\'s ARA-M rules. This hash is unique to your current app build\'s certificate.';
+      'Pour assurer la compatibilité entre les versions d\'Android, ajoutez toutes les empreintes SHA-1 de certificat ci-dessous aux règles ARA-M de votre carte. Après une mise à niveau de la clé de signature de l\'application, différentes versions d\'Android peuvent vérifier des certificats différents de l\'historique de signature validé.';
 
   @override
   String get certSha1Hash => 'Certificate SHA-1 Hash';

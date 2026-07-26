@@ -1298,7 +1298,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aramHashInstruction =>
-      '为了向此应用授予访问权限，您可能需要将以下 SHA-1 证书哈希添加到卡片的 ARA-M 规则中。此哈希值对您当前应用构建的证书是唯一的。';
+      '为兼容不同 Android 版本，请将下方所有 SHA-1 证书哈希添加到卡片的 ARA-M 规则中。应用签名密钥升级后，不同 Android 版本可能会检查已验证签名历史中的不同证书。';
 
   @override
   String get certSha1Hash => '证书 SHA-1 哈希';
@@ -3296,7 +3296,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get aramHashInstruction =>
-      '為了向此應用程式授予存取權限，您可能需要將以下 SHA-1 證書哈希添加到卡片的 ARA-M 規則中。此哈希值對您當前應用程式組建的證書是唯一的。';
+      '為相容不同 Android 版本，請將下方所有 SHA-1 憑證雜湊新增到卡片的 ARA-M 規則中。應用程式簽署金鑰升級後，不同 Android 版本可能會檢查已驗證簽署記錄中的不同憑證。';
 
   @override
   String get certSha1Hash => '證書 SHA-1 哈希';

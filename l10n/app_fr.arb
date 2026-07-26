@@ -444,7 +444,7 @@
   "whatIsAram": "What is ARA-M?",
   "aramDescription": "Access Rule Applet (ARA-M) is a mechanism on eUICCs (eSIMs) and SIM cards that defines which applications are allowed to manage profiles or perform low-level operations. If the app's hash is not present in the card's ARA-M allowlist, the Android system will block access, resulting in an 'Access Denied' error.",
   "appCertHashes": "App Certificate Hashes",
-  "aramHashInstruction": "To grant this app access, you may need to add the following SHA-1 certificate hash to your card's ARA-M rules. This hash is unique to your current app build's certificate.",
+  "aramHashInstruction": "Pour assurer la compatibilité entre les versions d'Android, ajoutez toutes les empreintes SHA-1 de certificat ci-dessous aux règles ARA-M de votre carte. Après une mise à niveau de la clé de signature de l'application, différentes versions d'Android peuvent vérifier des certificats différents de l'historique de signature validé.",
   "certSha1Hash": "Certificate SHA-1 Hash",
   "unavailable": "Unavailable",
   "troubleshooting": "Troubleshooting",

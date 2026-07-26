@@ -106,8 +106,11 @@ c47350c7ba682b34a3e584a0d58463ea42b1ad73
 To support **NekokoLPA 2 Standard**, use:
 
 ```text
+c47350c7ba682b34a3e584a0d58463ea42b1ad73
 d1c0f48b370e74d4ea4770ed4c3cd70a3198d31f
 ```
+
+NekokoLPA 2 Standard uses a verified signing-key history on Google Play. Android 16 and earlier commonly check the original `c473...` certificate for ARA-M access, while newer Android implementations may check the current `d1c0...` certificate. Add both rules when compatibility across Android versions is required.
 
 Adding these ARA-M values only means the relevant Android App version may be able to access or use the product, depending on the product’s technical implementation. It does not mean the product is official, authorized, certified, sponsored, or endorsed by NekokoLPA.
 
@@ -239,8 +242,11 @@ c47350c7ba682b34a3e584a0d58463ea42b1ad73
 如需支持 **NekokoLPA 2 Standard**，请使用：
 
 ```text
+c47350c7ba682b34a3e584a0d58463ea42b1ad73
 d1c0f48b370e74d4ea4770ed4c3cd70a3198d31f
 ```
+
+Google Play 上的 NekokoLPA 2 Standard 使用已验证的签名密钥历史。Android 16 及更早版本通常会检查原始的 `c473...` 证书来进行 ARA-M 访问控制，而更新的 Android 实现可能会检查当前的 `d1c0...` 证书。如需兼容不同 Android 版本，请同时添加这两条规则。
 
 添加这些 ARA-M 仅表示相关 Android App 版本可能可以访问或使用该产品，具体仍取决于产品自身的技术实现。这并不表示该产品是 NekokoLPA 官方产品、授权产品、认证产品、赞助产品或背书产品。
 

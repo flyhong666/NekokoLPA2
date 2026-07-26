@@ -1317,7 +1317,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aramHashInstruction =>
-      '이 앱에 대한 액세스를 허용하려면 카드 ARA-M 규칙에 다음 SHA-1 인증서 해시를 추가해야 할 수 있습니다. 이 해시는 현재 앱 빌드의 인증서에 고유합니다.';
+      'Android 버전 간 호환성을 위해 아래의 모든 SHA-1 인증서 해시를 카드의 ARA-M 규칙에 추가하세요. 앱 서명 키를 업그레이드한 후에는 Android 버전에 따라 검증된 서명 기록의 서로 다른 인증서를 확인할 수 있습니다.';
 
   @override
   String get certSha1Hash => '인증서 SHA-1 해시';

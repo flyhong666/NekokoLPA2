@@ -444,7 +444,7 @@
   "whatIsAram": "什麼是 ARA-M？",
   "aramDescription": "存取規則小應用 (ARA-M) 是 eUICC (eSIM) 和 SIM 卡上的一種機制，它定義了哪些應用程式被允許管理設定檔或執行低級操作。如果應用程式的哈希值不在卡片的 ARA-M 允許列表中，安卓系統將阻止存取，導致「存取被拒絕」錯誤。",
   "appCertHashes": "應用程式證書哈希",
-  "aramHashInstruction": "為了向此應用程式授予存取權限，您可能需要將以下 SHA-1 證書哈希添加到卡片的 ARA-M 規則中。此哈希值對您當前應用程式組建的證書是唯一的。",
+  "aramHashInstruction": "為相容不同 Android 版本，請將下方所有 SHA-1 憑證雜湊新增到卡片的 ARA-M 規則中。應用程式簽署金鑰升級後，不同 Android 版本可能會檢查已驗證簽署記錄中的不同憑證。",
   "certSha1Hash": "證書 SHA-1 哈希",
   "unavailable": "不可用",
   "troubleshooting": "故障排除",

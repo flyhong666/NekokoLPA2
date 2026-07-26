@@ -29,8 +29,15 @@ class _AramInfoPageState extends State<AramInfoPage> {
         'getCertificateHashes',
       );
       if (mounted) {
+        final aramHashes = result?['aramSha1'] as List?;
+        final currentHashes = result?['sha1'] as List?;
+        final hashes = aramHashes?.isNotEmpty == true
+            ? aramHashes
+            : currentHashes;
         setState(() {
-          _sha1 = (result?['sha1'] as List?)?.cast<String>();
+          _sha1 = hashes?.isNotEmpty == true
+              ? hashes!.map((hash) => hash.toString()).toSet().toList()
+              : null;
           _loading = false;
         });
       }

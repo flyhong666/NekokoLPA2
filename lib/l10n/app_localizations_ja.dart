@@ -1317,7 +1317,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get aramHashInstruction =>
-      'このアプリにアクセスを許可するには、カードの ARA-M ルールに以下の SHA-1 証明書のハッシュを追加する必要がある場合があります。このハッシュは、現在のアプリビルドの証明書に固有するものです。';
+      'Android バージョン間の互換性を確保するため、以下のすべての SHA-1 証明書ハッシュをカードの ARA-M ルールに追加してください。アプリ署名鍵のアップグレード後は、Android のバージョンによって検証済み署名履歴内の異なる証明書が確認される場合があります。';
 
   @override
   String get certSha1Hash => '証明書の SHA-1 ハッシュ';
