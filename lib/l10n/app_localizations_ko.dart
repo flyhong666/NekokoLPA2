@@ -1564,6 +1564,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get firmwareVersion => '펌웨어 버전';
 
   @override
+  String get beeSimFirmwareAction => 'Update BeeSIM firmware';
+
+  @override
+  String get beeSimFirmwareTitle => 'BeeSIM firmware update';
+
+  @override
+  String get beeSimFirmwareWarning =>
+      'A BeeSIM firmware update is available. Keep the card powered, Bluetooth connected, and the app open until it finishes. Interrupting the update may leave the card temporarily unusable.';
+
+  @override
+  String get beeSimFirmwareConfirm => 'Update firmware';
+
+  @override
   String get platformSupport => '플랫폼 지원';
 
   @override

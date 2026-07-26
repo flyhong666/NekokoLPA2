@@ -1,37 +1,73 @@
 {
   "de": [
-    "aramSigningHistoryInstruction"
+    "aramSigningHistoryInstruction",
+    "beeSimFirmwareAction",
+    "beeSimFirmwareTitle",
+    "beeSimFirmwareWarning",
+    "beeSimFirmwareConfirm"
   ],
 
   "es": [
-    "aramSigningHistoryInstruction"
+    "aramSigningHistoryInstruction",
+    "beeSimFirmwareAction",
+    "beeSimFirmwareTitle",
+    "beeSimFirmwareWarning",
+    "beeSimFirmwareConfirm"
   ],
 
   "fr": [
-    "aramSigningHistoryInstruction"
+    "aramSigningHistoryInstruction",
+    "beeSimFirmwareAction",
+    "beeSimFirmwareTitle",
+    "beeSimFirmwareWarning",
+    "beeSimFirmwareConfirm"
   ],
 
   "it": [
-    "aramSigningHistoryInstruction"
+    "aramSigningHistoryInstruction",
+    "beeSimFirmwareAction",
+    "beeSimFirmwareTitle",
+    "beeSimFirmwareWarning",
+    "beeSimFirmwareConfirm"
   ],
 
   "ja": [
-    "aramSigningHistoryInstruction"
+    "aramSigningHistoryInstruction",
+    "beeSimFirmwareAction",
+    "beeSimFirmwareTitle",
+    "beeSimFirmwareWarning",
+    "beeSimFirmwareConfirm"
   ],
 
   "ko": [
-    "aramSigningHistoryInstruction"
+    "aramSigningHistoryInstruction",
+    "beeSimFirmwareAction",
+    "beeSimFirmwareTitle",
+    "beeSimFirmwareWarning",
+    "beeSimFirmwareConfirm"
   ],
 
   "ru": [
-    "aramSigningHistoryInstruction"
+    "aramSigningHistoryInstruction",
+    "beeSimFirmwareAction",
+    "beeSimFirmwareTitle",
+    "beeSimFirmwareWarning",
+    "beeSimFirmwareConfirm"
   ],
 
   "zh": [
-    "aramSigningHistoryInstruction"
+    "aramSigningHistoryInstruction",
+    "beeSimFirmwareAction",
+    "beeSimFirmwareTitle",
+    "beeSimFirmwareWarning",
+    "beeSimFirmwareConfirm"
   ],
 
   "zh_TW": [
-    "aramSigningHistoryInstruction"
+    "aramSigningHistoryInstruction",
+    "beeSimFirmwareAction",
+    "beeSimFirmwareTitle",
+    "beeSimFirmwareWarning",
+    "beeSimFirmwareConfirm"
   ]
 }

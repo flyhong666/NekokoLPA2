@@ -1627,6 +1627,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get firmwareVersion => 'Version du micrologiciel';
 
   @override
+  String get beeSimFirmwareAction => 'Update BeeSIM firmware';
+
+  @override
+  String get beeSimFirmwareTitle => 'BeeSIM firmware update';
+
+  @override
+  String get beeSimFirmwareWarning =>
+      'A BeeSIM firmware update is available. Keep the card powered, Bluetooth connected, and the app open until it finishes. Interrupting the update may leave the card temporarily unusable.';
+
+  @override
+  String get beeSimFirmwareConfirm => 'Update firmware';
+
+  @override
   String get platformSupport => 'SUPPORT DE PLATEFORME';
 
   @override

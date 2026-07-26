@@ -9,6 +9,7 @@ import 'package:logging/logging.dart';
 
 import '../adapter/ble/bee_sim_adapter.dart';
 import '../adapter/euicc_adapter.dart';
+import '../l10n/app_localizations.dart';
 import '../models/euicc_profile.dart';
 import '../utils/hex_utils.dart';
 import '../widgets/profiles_screen/action_button.dart';
@@ -25,12 +26,17 @@ import 'plugin_base.dart';
 class BeeSimPlugin extends ProfilePlugin {
   static final Logger _log = Logger('BeeSimPlugin');
 
+  BeeSimPlugin({http.Client? httpClient})
+    : _httpClient = httpClient ?? http.Client();
+
   // Pinned constants from the BeeSIM web client. They are not secrets — the
   // upstream JS bundle ships them to every browser — but they DO have to stay
   // in sync with the server's expectation.
   static const _apiBase = 'https://api.beeesim.com';
   static const _signSecret = 'Hz3wU92K2ion6Kaq';
   static const _upgradeKey = 'BEESIM_FW_UPGRADE';
+
+  final http.Client _httpClient;
 
   @override
   String get id => 'bee_sim';
@@ -50,10 +56,11 @@ class BeeSimPlugin extends ProfilePlugin {
     final source = actionContext.reader?.source;
     final beeAdapter = _resolveBeeAdapter(adapter, source);
     if (beeAdapter == null) return const <Widget>[];
+    final l10n = AppLocalizations.of(context)!;
     return <Widget>[
       ActionButton(
-        icon: Icons.system_update_alt,
-        label: 'Upgrade firmware',
+        icon: Icons.memory,
+        label: l10n.beeSimFirmwareAction,
         onPressed: () => _runFirmwareUpgrade(context, beeAdapter),
       ),
     ];
@@ -72,6 +79,9 @@ class BeeSimPlugin extends ProfilePlugin {
     final logs = ValueNotifier<List<String>>(<String>[]);
     final progress = ValueNotifier<_UpgradeProgress?>(null);
     final done = ValueNotifier<bool>(false);
+    final awaitingConfirmation = ValueNotifier<bool>(false);
+    Completer<bool>? confirmationDecision;
+    var dialogClosed = false;
 
     void log(String line) {
       _log.info(line);
@@ -85,7 +95,23 @@ class BeeSimPlugin extends ProfilePlugin {
         logs: logs,
         progress: progress,
         done: done,
+        awaitingConfirmation: awaitingConfirmation,
+        onConfirmation: (confirmed) {
+          final decision = confirmationDecision;
+          if (decision != null && !decision.isCompleted) {
+            decision.complete(confirmed);
+          }
+        },
       ),
+    );
+    unawaited(
+      dialogFuture.whenComplete(() {
+        dialogClosed = true;
+        final decision = confirmationDecision;
+        if (decision != null && !decision.isCompleted) {
+          decision.complete(false);
+        }
+      }),
     );
 
     try {
@@ -111,36 +137,46 @@ class BeeSimPlugin extends ProfilePlugin {
         'Server returned ${upgrade.rows.length} rows '
         '(total=${upgrade.total}, resume index=${upgrade.index}).',
       );
+      if (dialogClosed) {
+        log('Firmware update cancelled before confirmation.');
+        return;
+      }
+
+      final decision = Completer<bool>();
+      confirmationDecision = decision;
+      awaitingConfirmation.value = true;
+      final confirmed = await decision.future;
+      awaitingConfirmation.value = false;
+      if (!confirmed) {
+        log('Firmware update cancelled. No firmware rows were written.');
+        return;
+      }
+
       progress.value = _UpgradeProgress(
         current: upgrade.index,
         total: upgrade.total,
       );
 
-      int n = upgrade.index;
-      for (final row in upgrade.rows) {
-        final ok = await adapter.writeFirmwareRow(
-          totalRows: upgrade.total,
-          currentRow: n,
-          rowBytes: row,
-        );
-        if (!ok) {
-          throw StateError(
-            'Device rejected firmware row $n/${upgrade.total}.',
+      await adapter.runExclusive(() async {
+        int n = upgrade.index;
+        for (final row in upgrade.rows) {
+          final ok = await adapter.writeFirmwareRow(
+            totalRows: upgrade.total,
+            currentRow: n,
+            rowBytes: row,
           );
+          if (!ok) {
+            throw StateError(
+              'Device rejected firmware row $n/${upgrade.total}.',
+            );
+          }
+          progress.value = _UpgradeProgress(current: n, total: upgrade.total);
+          n++;
         }
-        progress.value = _UpgradeProgress(current: n, total: upgrade.total);
-        n++;
-      }
 
-      log('All rows accepted. Resetting device…');
-      try {
+        log('All rows accepted. Resetting device…');
         await adapter.resetDevice();
-      } catch (e) {
-        // A clean reset usually drops the BLE link before acknowledging — the
-        // upload itself already succeeded, so don't fail the whole flow on
-        // post-reset I/O errors.
-        log('Reset returned ${e.runtimeType} (ignored — device is rebooting).');
-      }
+      });
       log('Firmware update complete.');
     } catch (e, st) {
       log('Firmware update failed: $e');
@@ -148,6 +184,10 @@ class BeeSimPlugin extends ProfilePlugin {
     } finally {
       done.value = true;
       await dialogFuture;
+      awaitingConfirmation.dispose();
+      done.dispose();
+      progress.dispose();
+      logs.dispose();
     }
   }
 
@@ -170,7 +210,7 @@ class BeeSimPlugin extends ProfilePlugin {
       '$_apiBase/v2/plugin/mall/firmware.do',
     ).replace(queryParameters: params);
 
-    final resp = await http
+    final resp = await _httpClient
         .post(
           uri,
           headers: {
@@ -252,68 +292,131 @@ class _BeeSimUpgradeDialog extends StatelessWidget {
     required this.logs,
     required this.progress,
     required this.done,
+    required this.awaitingConfirmation,
+    required this.onConfirmation,
   });
 
   final ValueNotifier<List<String>> logs;
   final ValueNotifier<_UpgradeProgress?> progress;
   final ValueNotifier<bool> done;
+  final ValueNotifier<bool> awaitingConfirmation;
+  final ValueChanged<bool> onConfirmation;
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('BeeSIM firmware update'),
-      content: SizedBox(
-        width: 480,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ValueListenableBuilder<_UpgradeProgress?>(
-              valueListenable: progress,
-              builder: (_, p, _) {
-                if (p == null) return const SizedBox.shrink();
-                final fraction = p.total == 0 ? null : p.current / p.total;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      LinearProgressIndicator(value: fraction),
-                      const SizedBox(height: 4),
-                      Text('Row ${p.current} / ${p.total}'),
-                    ],
-                  ),
-                );
-              },
-            ),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 240),
-              child: ValueListenableBuilder<List<String>>(
-                valueListenable: logs,
-                builder: (_, lines, _) => SingleChildScrollView(
-                  reverse: true,
-                  child: Text(
-                    lines.join('\n'),
-                    style: const TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 12,
+    final l10n = AppLocalizations.of(context)!;
+    return ValueListenableBuilder<bool>(
+      valueListenable: done,
+      builder: (context, isDone, _) => PopScope(
+        canPop: isDone,
+        child: AlertDialog(
+          title: Text(l10n.beeSimFirmwareTitle),
+          content: SizedBox(
+            width: 480,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ValueListenableBuilder<bool>(
+                  valueListenable: awaitingConfirmation,
+                  builder: (_, needsConfirmation, _) {
+                    if (!needsConfirmation) return const SizedBox.shrink();
+                    final colors = Theme.of(context).colorScheme;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: colors.errorContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.warning_amber_rounded,
+                            color: colors.onErrorContainer,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              l10n.beeSimFirmwareWarning,
+                              style: TextStyle(color: colors.onErrorContainer),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                ValueListenableBuilder<_UpgradeProgress?>(
+                  valueListenable: progress,
+                  builder: (_, p, _) {
+                    if (p == null) return const SizedBox.shrink();
+                    final fraction = p.total == 0 ? null : p.current / p.total;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          LinearProgressIndicator(value: fraction),
+                          const SizedBox(height: 4),
+                          Text('Row ${p.current} / ${p.total}'),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 240),
+                  child: ValueListenableBuilder<List<String>>(
+                    valueListenable: logs,
+                    builder: (_, lines, _) => SingleChildScrollView(
+                      reverse: true,
+                      child: Text(
+                        lines.join('\n'),
+                        style: const TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 12,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
+            ),
+          ),
+          actions: [
+            ValueListenableBuilder<bool>(
+              valueListenable: awaitingConfirmation,
+              builder: (ctx, needsConfirmation, _) {
+                if (needsConfirmation) {
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          onConfirmation(false);
+                          Navigator.of(ctx).pop();
+                        },
+                        child: Text(l10n.cancel),
+                      ),
+                      const SizedBox(width: 8),
+                      FilledButton(
+                        onPressed: () => onConfirmation(true),
+                        child: Text(l10n.beeSimFirmwareConfirm),
+                      ),
+                    ],
+                  );
+                }
+                return TextButton(
+                  onPressed: isDone ? () => Navigator.of(ctx).pop() : null,
+                  child: Text(l10n.close),
+                );
+              },
             ),
           ],
         ),
       ),
-      actions: [
-        ValueListenableBuilder<bool>(
-          valueListenable: done,
-          builder: (ctx, isDone, _) => TextButton(
-            onPressed: isDone ? () => Navigator.of(ctx).pop() : null,
-            child: const Text('Close'),
-          ),
-        ),
-      ],
     );
   }
 }

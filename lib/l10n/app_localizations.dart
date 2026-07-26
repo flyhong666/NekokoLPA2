@@ -3053,6 +3053,30 @@ abstract class AppLocalizations {
   /// **'Firmware Version'**
   String get firmwareVersion;
 
+  /// No description provided for @beeSimFirmwareAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Update BeeSIM firmware'**
+  String get beeSimFirmwareAction;
+
+  /// No description provided for @beeSimFirmwareTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'BeeSIM firmware update'**
+  String get beeSimFirmwareTitle;
+
+  /// No description provided for @beeSimFirmwareWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'A BeeSIM firmware update is available. Keep the card powered, Bluetooth connected, and the app open until it finishes. Interrupting the update may leave the card temporarily unusable.'**
+  String get beeSimFirmwareWarning;
+
+  /// No description provided for @beeSimFirmwareConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Update firmware'**
+  String get beeSimFirmwareConfirm;
+
   /// No description provided for @platformSupport.
   ///
   /// In en, this message translates to:

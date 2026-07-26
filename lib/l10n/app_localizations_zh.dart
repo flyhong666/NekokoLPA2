@@ -1540,6 +1540,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get firmwareVersion => '固件版本';
 
   @override
+  String get beeSimFirmwareAction => 'Update BeeSIM firmware';
+
+  @override
+  String get beeSimFirmwareTitle => 'BeeSIM firmware update';
+
+  @override
+  String get beeSimFirmwareWarning =>
+      'A BeeSIM firmware update is available. Keep the card powered, Bluetooth connected, and the app open until it finishes. Interrupting the update may leave the card temporarily unusable.';
+
+  @override
+  String get beeSimFirmwareConfirm => 'Update firmware';
+
+  @override
   String get platformSupport => '平台支持';
 
   @override
