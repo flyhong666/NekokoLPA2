@@ -6,8 +6,35 @@ const String defaultDeviceTac = '35383741';
 /// Converts the app's ordinary digit-order IMEI bytes into the swapped BCD
 /// encoding used by GSMA deviceInfo.imei.
 Uint8List encodeDeviceInfoImei(List<int> imei) {
-  final digits = imeiDigitsFromStoredBytes(imei);
+  final digits = _imeiDigitsFromStoredOrIntegerBytes(imei);
   return _encodeSwappedBcd(digits);
+}
+
+/// Signing callers historically supplied an IMEI either as persisted BCD or
+/// as the big-endian bytes of one unsigned 64-bit decimal value. Normalize at
+/// the final deviceInfo boundary as well as in the JavaScript bridge so neither
+/// representation can leak a hexadecimal nibble into the IMEI encoder.
+String _imeiDigitsFromStoredOrIntegerBytes(List<int> imei) {
+  try {
+    return imeiDigitsFromStoredBytes(imei);
+  } on FormatException {
+    final digits = _imeiDigitsFromUnsignedIntegerBytes(imei);
+    if (digits == null) rethrow;
+    return digits;
+  }
+}
+
+String? _imeiDigitsFromUnsignedIntegerBytes(List<int> imei) {
+  if (imei.length != 8 || imei.any((byte) => byte < 0 || byte > 0xff)) {
+    return null;
+  }
+
+  var numeric = BigInt.zero;
+  for (final byte in imei) {
+    numeric = (numeric << 8) | BigInt.from(byte);
+  }
+  final digits = numeric.toString();
+  return digits.length == 15 ? digits : null;
 }
 
 /// Normalizes the two 32-bit values used by the signing bridge.
@@ -27,10 +54,8 @@ Uint8List storedImeiBytesFromIntegerParts(int high, int low) {
     imeiDigitsFromStoredBytes(packed);
     return packed;
   } on FormatException {
-    final numeric =
-        (BigInt.from(normalizedHigh) << 32) | BigInt.from(normalizedLow);
-    final digits = numeric.toString();
-    if (digits.length != 15) {
+    final digits = _imeiDigitsFromUnsignedIntegerBytes(packed);
+    if (digits == null) {
       throw FormatException(
         'IMEI integer must contain exactly 15 decimal digits',
       );

@@ -62,6 +62,17 @@ void main() {
     );
   });
 
+  test('normalizes numeric IMEI bytes containing a hexadecimal nibble', () {
+    final raw = ByteData(8)..setUint64(0, 744506485380692, Endian.big);
+    final bytes = raw.buffer.asUint8List();
+
+    expect(bytes[2], 0xa5);
+    expect(
+      encodeDeviceInfoImei(bytes),
+      Uint8List.fromList([0x47, 0x54, 0x60, 0x84, 0x35, 0x08, 0x96, 0xf2]),
+    );
+  });
+
   test('preserves legacy packed BCD integer parts', () {
     final stored = storedImeiBytesFromIntegerParts(0x35383741, 0x00000130);
 

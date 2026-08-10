@@ -2,6 +2,11 @@
 
 All notable changes to NekokoLPA2 will be documented in this file.
 
+## [2.2.1+583] - 2026-08-11
+
+### Fixed
+- Fixed eUICC signing when a valid 15-digit IMEI is supplied as unsigned integer bytes.
+
 ## [2.1.5+575] - 2026-07-10
 
 ### Added
