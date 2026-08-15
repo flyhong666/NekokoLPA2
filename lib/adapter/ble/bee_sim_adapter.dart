@@ -1,10 +1,12 @@
+import 'dart:math';
 import 'dart:async';
-import 'dart:typed_data';
 import 'package:ble/ble.dart';
+import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 import '../euicc_adapter.dart';
 import '../../utils/hex_utils.dart';
 import '../../utils/error_codes.dart';
+import 'ble_adapter.dart';
 import 'bee_sim_command_pacer.dart';
 import 'ble_transport_utils.dart';
 
@@ -27,14 +29,35 @@ class BeeSimUpgradeStatus {
       'BeeSimUpgradeStatus(crc=$crc, totalRows=$totalRows, currentRow=$currentRow)';
 }
 
-class BeeSimAdapter extends BaseAdapter {
+class BeeSimAdapter extends BaseAdapter implements BleAdapter {
   static final Logger _log = Logger('BeeSimAdapter');
 
   BeeSimAdapter() : super(_log);
 
-  /// Mirrors the JS client's `groupValue()`: BLE notify packets are 20 bytes
-  /// max — 2 bytes header `[total, index]` + 18 bytes payload.
-  static const int _maxFramePayload = 18;
+  /// The JS client's `groupValue()` floor: a 20-byte frame is 2 bytes of
+  /// `[total, index]` header plus 18 of payload. That is the BLE 4.0 minimum
+  /// ATT payload, not a limit of the writer, so it is only the fallback.
+  static const int _minFramePayload = 18;
+
+  /// Upper bound on a frame, matching the MTU asked for at connect (247 - 3).
+  static const int _maxFrameLength = 244;
+
+  /// Frame payload for the current link.
+  ///
+  /// One frame has to land in one GATT write: the writer reassembles on the
+  /// `[total, index]` header, so a frame split across two writes arrives as
+  /// two malformed ones. Native links can carry the negotiated MTU, but
+  /// [writeBleChunks] caps web writes at 20 bytes whatever the MTU says, so
+  /// web stays on the floor rather than being split.
+  int get _framePayload {
+    final device = _device;
+    if (kIsWeb || device == null) return _minFramePayload;
+    final frameLength = calculateBleWriteChunkSize(
+      device.mtuNow,
+      maxChunkSize: _maxFrameLength,
+    );
+    return max(_minFramePayload, frameLength - 2);
+  }
 
   /// Service used purely for documentation — discovery uses TX/RX char hints.
   /// JS picks the first writable + first notify-only characteristic, so we do
@@ -429,7 +452,8 @@ class BeeSimAdapter extends BaseAdapter {
     _lastCommandFullyTransmitted = false;
     _rxQueue.clear();
     _rxFailure = null;
-    final frames = _encodeFrames(data);
+    final framePayload = _framePayload;
+    final frames = _encodeFrames(data, framePayload);
     _log.fine(
       () =>
           "[BeeSIM $label] TX len=${data.length} data=${HexUtils.bytesToHex(data)}",
@@ -465,7 +489,7 @@ class BeeSimAdapter extends BaseAdapter {
           device: device,
           characteristic: txChar,
           data: f,
-          maxChunkSize: 20,
+          maxChunkSize: framePayload + 2,
         );
         if (i == frames.length - 1) {
           _lastCommandFullyTransmitted = true;
@@ -522,6 +546,39 @@ class BeeSimAdapter extends BaseAdapter {
     }
 
     _emitPortState(EuiccPortState.closed);
+
+    final dropped = _device;
+    if (dropped != null) {
+      unawaited(_releaseLostLink(dropped));
+    }
+  }
+
+  /// Releases a link the writer dropped on its own.
+  ///
+  /// Clearing the characteristics is not enough: the peripheral handle stays
+  /// live, so CoreBluetooth keeps the pending connection and silently re-takes
+  /// the writer the moment it comes back. A held peripheral does not
+  /// advertise, so the card disappears from every later scan and cannot be
+  /// reconnected until the app is restarted. Handing the peripheral back
+  /// releases it.
+  ///
+  /// [connectedReader] is deliberately kept: [sendRawApdu] reconnects through
+  /// it mid-transfer.
+  Future<void> _releaseLostLink(BluetoothDevice dropped) async {
+    if (_disconnectRequested) return;
+    // A reconnect builds a fresh peripheral for the same id, so compare the
+    // handle rather than the id: only the one that dropped may be released.
+    if (!identical(_device, dropped)) return;
+    _log.info('Releasing the dropped BeeSIM link so the writer advertises.');
+    try {
+      await _tearDown(
+        clearReader: false,
+        disconnectDevice: true,
+        emitClosed: false,
+      );
+    } catch (error) {
+      _log.fine('BeeSIM lost-link cleanup failed: $error');
+    }
   }
 
   void _cancelPendingCommand(
@@ -624,14 +681,14 @@ class BeeSimAdapter extends BaseAdapter {
   /// Splits the command into 20-byte BLE notify frames following the JS
   /// client's `groupValue()` (max 18 bytes of payload per frame) and prepends
   /// the `[total, index]` framing header.
-  List<Uint8List> _encodeFrames(Uint8List data) {
+  List<Uint8List> _encodeFrames(Uint8List data, int payloadSize) {
     final frames = <Uint8List>[];
-    int total = data.isEmpty ? 1 : (data.length / _maxFramePayload).ceil();
+    int total = data.isEmpty ? 1 : (data.length / payloadSize).ceil();
     for (int i = 0; i < total; i++) {
-      final start = i * _maxFramePayload;
-      final end = (start + _maxFramePayload > data.length)
+      final start = i * payloadSize;
+      final end = (start + payloadSize > data.length)
           ? data.length
-          : start + _maxFramePayload;
+          : start + payloadSize;
       final payload = data.sublist(start, end);
 
       final frame = Uint8List(2 + payload.length)
