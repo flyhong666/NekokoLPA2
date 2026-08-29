@@ -13,6 +13,10 @@ permissions:
 env:
   PACKAGE_ID: ee.nekoko.nlpa2.open
   FLAVOR: community
+  # Pinned so a stable-channel release cannot change the toolchain under us:
+  # 3.47.2 turned Flutter's Gradle/AGP/Kotlin minimums from warnings into
+  # errors. Bump deliberately, together with the versions in android/.
+  FLUTTER_VERSION: 3.47.2
 
 jobs:
   meta:
@@ -43,6 +47,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - run: flutter pub get
       - run: dart analyze
@@ -70,6 +75,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - run: flutter pub get
       - run: flutter build web --release
@@ -93,6 +99,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - name: Install system dependencies
         run: |
@@ -156,6 +163,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - run: flutter pub get
       - run: flutter build windows --release
