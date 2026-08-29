@@ -2,6 +2,16 @@
 
 All notable changes to NekokoLPA2 will be documented in this file.
 
+## [2.2.4+586] - 2026-08-29
+
+### Fixed
+- Confirmation codes are hashed over the transaction identifier itself rather than its text form, so a server that issues a short identifier no longer rejects a correct code.
+- Carrier eSIM transfers send the device IMEI in the right digit order; carriers that validate it no longer refuse the transfer.
+- USB card readers release their connection when disconnected, instead of leaking one per session until connecting stopped working.
+- Profile downloads give up on an unresponsive server instead of waiting indefinitely, and the screen now explains why it cannot be dismissed mid-operation.
+- Rejecting a previewed profile ends the session with the server, so the next attempt is not refused as already in progress.
+- Reader actions such as loading the current SIM to VoWiFi act on the profiles currently on the card rather than a stale list.
+
 ## [2.2.1+583] - 2026-08-11
 
 ### Fixed
