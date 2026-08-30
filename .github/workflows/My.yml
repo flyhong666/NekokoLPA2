@@ -1,4 +1,4 @@
-name: Build NekokoLPA2
+name: My Build NekokoLPA2
 
 on:
   push:
