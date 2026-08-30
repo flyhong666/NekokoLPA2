@@ -202,7 +202,7 @@ jobs:
 
   release:
     name: Create GitHub Release
-    if: github.ref == 'refs/heads/release' && github.event_name != 'pull_request'
+     if: (github.ref == 'refs/heads/release' || github.event_name == 'workflow_dispatch') && github.event_name != 'pull_request'
     needs: [meta, android, web, linux, windows]
     runs-on: ubuntu-latest
     steps:
