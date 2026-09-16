@@ -781,5 +781,8 @@
   "editDeviceImei": "编辑设备 TAC",
   "editDeviceImeiInfo": "输入 8 位 TAC，或 15 位 IMEI。默认 TAC：35383741。",
   "imeiDigits": "TAC 或 IMEI 数字",
-  "importAction": "导入"
+  "importAction": "导入",
+  "Scan QR Code": "扫描二维码",
+  "Center the  QR code in the frame": "将二维码置于取景框中央",
+  "select from Gallery": "从相册选择"
 }
