@@ -18,6 +18,7 @@ import 'omapi/omapi_adapter.dart';
 import 'telephony/telephony_adapter.dart';
 import 'scrp/scrp_adapter.dart';
 import 'qrtr/qrtr_reader_adapter.dart';
+import 'se_hal_adapter.dart';
 
 import 'remote/remocard_adapter.dart';
 import '../settings/app_settings.dart';
@@ -47,6 +48,7 @@ class CompositeAdapter extends BaseAdapter {
   final TelephonyAdapter _telephonyAdapter = TelephonyAdapter();
   final ScrpAdapter _scrpAdapter = ScrpAdapter();
   final QrtrReaderAdapter _qrtrAdapter = QrtrReaderAdapter();
+  final SeHalAdapter _seHalAdapter = SeHalAdapter();
   final Logger _log = Logger('CompositeAdapter');
 
   Future<Reader?> scanScrp() => _scrpAdapter.scanScrp();
@@ -202,6 +204,11 @@ class CompositeAdapter extends BaseAdapter {
         addReaders(await _qrtrAdapter.listReaders(force: force));
       } catch (e) {
         _log.warning("QRTR modem list failed: $e");
+      }
+      try {
+        addReaders(await _seHalAdapter.listReaders(force: force));
+      } catch (e) {
+        _log.warning("SE HAL reader list failed: $e");
       }
     }
 
@@ -504,6 +511,15 @@ class CompositeAdapter extends BaseAdapter {
     }
 
     return await runExclusive(() async {
+      if (reader.source is SeHalAdapter) {
+        if (!AppSettings().enableSeHalConnector) {
+          throw AppException(
+            AppErrorCode.ERROR_OMAPI_PERMISSION_DENIED,
+            message: "SE HAL connector is disabled",
+          );
+        }
+        (reader.source as SeHalAdapter).validateReaderSettings(reader);
+      }
       if (_connectedAdapter != null &&
           identical(_connectedAdapter, reader.source) &&
           _currentReader?.id == reader.id &&
@@ -574,6 +590,11 @@ class CompositeAdapter extends BaseAdapter {
     return await runExclusive(() async {
       final adapter = _connectedAdapter;
       if (adapter == null) return;
+      if (adapter is SeHalAdapter) {
+        // Keep both connection states in sync, including failed reopen attempts.
+        await super.reconnect();
+        return;
+      }
       try {
         await adapter.runExclusive(() async {
           // The selected reader survives a link drop; its transport does not.

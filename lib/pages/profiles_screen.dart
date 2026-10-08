@@ -1,3 +1,4 @@
+import '../adapter/se_hal_adapter.dart';
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import 'package:flutter/foundation.dart';
@@ -176,6 +177,12 @@ class _ProfilesScreenState extends State<ProfilesScreen>
   final Map<String, ReaderState> _readerStates = {};
   List<EuiccProfile>? _profiles;
   List<Reader> _readers = [];
+  bool _reloadingHalModes = false;
+  final Set<int> _pendingHalSettingSlots = {};
+  bool _halConnectorEnabled = AppSettings().enableSeHalConnector;
+  List<bool> _halBorrowedModes = [
+    for (final slot in [1, 2]) AppSettings().halUseBorrowed(slot),
+  ];
   Reader? _selectedReader;
   String? _eid;
   EUICCInfo2? _info2;
@@ -671,11 +678,62 @@ class _ProfilesScreenState extends State<ProfilesScreen>
   }
 
   void _onSettingsChanged() {
-    if (mounted) {
-      setState(() {
-        _filteredProfiles = null;
-      });
+    if (!mounted) return;
+    setState(() {
+      _filteredProfiles = null;
+    });
+    final modes = [
+      for (final slot in [1, 2]) AppSettings().halUseBorrowed(slot),
+    ];
+    final enabled = AppSettings().enableSeHalConnector;
+    for (final slot in [1, 2]) {
+      if (enabled != _halConnectorEnabled ||
+          modes[slot - 1] != _halBorrowedModes[slot - 1]) {
+        _pendingHalSettingSlots.add(slot);
+      }
     }
+    _halBorrowedModes = modes;
+    _halConnectorEnabled = enabled;
+    if (_reloadingHalModes || _pendingHalSettingSlots.isEmpty) return;
+    final changedSlots = _pendingHalSettingSlots.toList();
+    _pendingHalSettingSlots.clear();
+    _reloadingHalModes = true;
+    unawaited(() async {
+      try {
+        await _adapter.runExclusive(() async {
+          final connected = _adapter.connectedReader;
+          if (connected != null &&
+              connected.source is SeHalAdapter &&
+              changedSlots.contains(SeHalAdapter.slotFor(connected))) {
+            await _adapter.disconnect();
+          }
+          for (final slot in changedSlots) {
+            final id = 'hal:SIM$slot';
+            _readerStates.remove(id);
+            _readerStates.remove('$id:owned');
+          }
+          final selected = _selectedReader;
+          if (mounted &&
+              selected != null &&
+              selected.source is SeHalAdapter &&
+              changedSlots.contains(SeHalAdapter.slotFor(selected))) {
+            setState(() {
+              _selectedReader = null;
+              _profiles = null;
+              _eid = null;
+              _info2 = null;
+              _error = null;
+            });
+          }
+          if (mounted) await _loadReaders(skipLoading: true, force: true);
+        });
+      } catch (e) {
+        _log.warning('Failed to reload SE HAL ownership settings: $e');
+      } finally {
+        _reloadingHalModes = false;
+        _onSettingsChanged();
+      }
+    }());
   }
 
   void _onPendingLpaChanged() {
@@ -1075,50 +1133,64 @@ class _ProfilesScreenState extends State<ProfilesScreen>
       });
     }
     try {
-      final readers = (await _adapter.listReaders(force: force)).map((r) {
-        final existingIdx = _readers.indexWhere((old) => old.id == r.id);
-        if (existingIdx != -1) {
-          final existing = _readers[existingIdx];
-          existing.name = r.name;
-          existing.source = r.source;
-          existing.context = r.context;
-          return existing;
-        }
+      final readers = (await _adapter.listReaders(force: force))
+          .where(
+            (r) =>
+                r.source is! SeHalAdapter || AppSettings().enableSeHalConnector,
+          )
+          .map((r) {
+            // The borrow setting may have changed while other readers were
+            // listed, so HAL readers are rebuilt from the current one.
+            if (r.source is SeHalAdapter) {
+              final current = (r.source as SeHalAdapter).readerForSlot(
+                SeHalAdapter.slotFor(r),
+              );
+              if (r.id != current.id) r = current;
+            }
+            final existingIdx = _readers.indexWhere((old) => old.id == r.id);
+            if (existingIdx != -1) {
+              final existing = _readers[existingIdx];
+              existing.name = r.name;
+              existing.source = r.source;
+              existing.context = r.context;
+              return existing;
+            }
 
-        final persistedEid = AppSettings().getPersistedEid(r.id);
-        if (persistedEid != null) {
-          r.eid = persistedEid;
-          // Background check for capabilities if we don't have them yet
-          if (!r.isEstkMax) {
-            Future.wait(
-              BuildPluginRegistry.createSessionPlugins().map(
-                (p) => p.probeReaderCapabilities(persistedEid, null),
-              ),
-            ).then((results) {
-              if (mounted) {
-                bool changed = false;
-                for (var result in results) {
-                  if (result != null &&
-                      result['isEstkMax'] == true &&
-                      !r.isEstkMax) {
-                    r.isEstkMax = true;
-                    changed = true;
-                  }
-                }
-                if (changed) {
-                  setState(() {
-                    // If this was the selected reader, update state too
-                    if (_selectedReader?.id == r.id) {
-                      _selectReader(r);
+            final persistedEid = AppSettings().getPersistedEid(r.id);
+            if (persistedEid != null) {
+              r.eid = persistedEid;
+              // Background check for capabilities if we don't have them yet
+              if (!r.isEstkMax) {
+                Future.wait(
+                  BuildPluginRegistry.createSessionPlugins().map(
+                    (p) => p.probeReaderCapabilities(persistedEid, null),
+                  ),
+                ).then((results) {
+                  if (mounted) {
+                    bool changed = false;
+                    for (var result in results) {
+                      if (result != null &&
+                          result['isEstkMax'] == true &&
+                          !r.isEstkMax) {
+                        r.isEstkMax = true;
+                        changed = true;
+                      }
                     }
-                  });
-                }
+                    if (changed) {
+                      setState(() {
+                        // If this was the selected reader, update state too
+                        if (_selectedReader?.id == r.id) {
+                          _selectReader(r);
+                        }
+                      });
+                    }
+                  }
+                });
               }
-            });
-          }
-        }
-        return r;
-      }).toList();
+            }
+            return r;
+          })
+          .toList();
 
       _log.info(
         "Loaded ${readers.length} readers. Current: ${_readers.length}",
@@ -1154,7 +1226,14 @@ class _ProfilesScreenState extends State<ProfilesScreen>
                   (r) => r.id == lastSelectedId,
                 );
               } catch (_) {
-                newSelection = readers.first;
+                // Preserve the SIM slot when changing the HAL ownership mode.
+                newSelection = readers.firstWhere(
+                  (r) =>
+                      r.source is SeHalAdapter &&
+                      r.id.replaceFirst(':owned', '') ==
+                          lastSelectedId.replaceFirst(':owned', ''),
+                  orElse: () => readers.first,
+                );
               }
             } else {
               newSelection = readers.first;
@@ -1474,6 +1553,9 @@ class _ProfilesScreenState extends State<ProfilesScreen>
 
     try {
       await _loadReaders();
+      if (_selectedReader?.source is SeHalAdapter) {
+        await _listProfiles(disableRetry: true);
+      }
     } catch (e) {
       if (mounted) {
         setState(
@@ -1578,10 +1660,16 @@ class _ProfilesScreenState extends State<ProfilesScreen>
           );
         }
 
+        // A retained ISD-R session can be stale after modem REFRESH.
+        final reopenHal =
+            _adapter.connectedReader?.id == reader.id &&
+            reader.source is SeHalAdapter;
+
         _adapter.connectProgress.addListener(showConnectStep);
         try {
           // Ensure reader is still the selected one or at least the one we started with
           await _adapter.connect(reader);
+          if (reopenHal) await _adapter.reconnect();
         } finally {
           _adapter.connectProgress.removeListener(showConnectStep);
         }
@@ -2407,6 +2495,111 @@ class _ProfilesScreenState extends State<ProfilesScreen>
     final reader = _selectedReader;
     if (reader == null) return;
 
+    if (reader.source is SeHalAdapter) {
+      final l10n = AppLocalizations.of(context)!;
+      final confirmed =
+          await showDialog<bool>(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              title: Text(
+                enable ? l10n.seHalSwitchTitle : l10n.seHalDisableTitle,
+              ),
+              content: Text(
+                '${p.displayName}\nICCID: ${p.iccid}\n\n${enable ? l10n.seHalEnableWarning : l10n.seHalDisableWarning}',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.cancel),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: Text(
+                    enable ? l10n.seHalAcceptSwitch : l10n.seHalAcceptDisable,
+                  ),
+                ),
+              ],
+            ),
+          ) ??
+          false;
+      if (!confirmed || !mounted) return;
+      _setSwitching(true);
+      setState(() {
+        _loading = true;
+        _togglingIccid = p.iccid;
+        _error = null;
+      });
+      try {
+        await _adapter.runExclusive(() async {
+          await _adapter.connect(reader);
+          final profiles = await _manager.switchHalProfileAndVerify(
+            p.iccid,
+            enable,
+          );
+          _updateReaderState(
+            reader,
+            profiles: profiles,
+            eid: reader.eid,
+            clearError: true,
+          );
+          try {
+            final channel = await _manager.openSession();
+            try {
+              await NotificationService().processPendingNotifications(
+                _manager,
+                channel,
+                autoSendInstall: true,
+                autoRemoveInstall: false,
+                autoSendEnable: true,
+                autoRemoveEnable: false,
+                deleteWithoutSendingEnable: false,
+                autoSendDisable: true,
+                autoRemoveDisable: false,
+                deleteWithoutSendingDisable: false,
+                autoSendDelete: false,
+                autoRemoveDelete: false,
+              );
+            } finally {
+              await channel.close();
+            }
+          } catch (e) {
+            _log.warning(
+              'HAL notification reporting failed; use the notification screen: $e',
+            );
+          }
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.seHalStateChanged)));
+        }
+      } catch (e) {
+        final errorStr = e.toString();
+        if (!mounted) return;
+        if (errorStr.contains('ENABLE_FAILED:') ||
+            errorStr.contains('DISABLE_FAILED:')) {
+          // The card refused, so the profile list is still accurate.
+          _showFailureModal(enable ? 'enable' : 'disable', errorStr);
+        } else {
+          _updateReaderState(
+            reader,
+            profiles: [],
+            error: l10n.seHalStateUnknown(errorStr),
+          );
+        }
+      } finally {
+        _setSwitching(false);
+        if (mounted) {
+          setState(() {
+            _loading = false;
+            _togglingIccid = null;
+          });
+        }
+      }
+      return;
+    }
+
     setState(() {
       _loading = true;
       _togglingIccid = p.iccid;
@@ -3009,7 +3202,22 @@ class _ProfilesScreenState extends State<ProfilesScreen>
         }
 
         final settings = AppSettings();
-        if (settings.notifProcessAfterDeletion &&
+        if (reader.source is SeHalAdapter) {
+          await NotificationService().processPendingNotifications(
+            _manager,
+            null,
+            autoSendInstall: true,
+            autoRemoveInstall: false,
+            autoSendEnable: true,
+            autoRemoveEnable: false,
+            deleteWithoutSendingEnable: false,
+            autoSendDisable: true,
+            autoRemoveDisable: false,
+            deleteWithoutSendingDisable: false,
+            autoSendDelete: true,
+            autoRemoveDelete: false,
+          );
+        } else if (settings.notifProcessAfterDeletion &&
             settings.isAnyNotificationProcessingEnabled) {
           await NotificationService().processPendingNotifications(
             _manager,
@@ -3031,7 +3239,15 @@ class _ProfilesScreenState extends State<ProfilesScreen>
         }
       });
     } catch (e) {
-      _handleOperationError(reader, e, onRetry: () => _deleteProfile(p));
+      if (reader.source is SeHalAdapter) {
+        setState(
+          () => _error = AppLocalizations.of(
+            context,
+          )!.seHalDeleteUnknown(e.toString()),
+        );
+      } else {
+        _handleOperationError(reader, e, onRetry: () => _deleteProfile(p));
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -5225,7 +5441,8 @@ class _ProfilesScreenState extends State<ProfilesScreen>
                     currentMode: currentModeText,
                     alternativeMode: alternativeModeText,
                     onDownload: _eid != null ? _handleDownload : null,
-                    onBatchDownload: _eid != null
+                    onBatchDownload:
+                        _eid != null && _selectedReader?.source is! SeHalAdapter
                         ? (key) => _handleBatchDownload(key)
                         : null,
                     onNotifications: _eid != null

@@ -31,7 +31,7 @@ class ReaderHelper {
       return Icons.cloud_rounded;
     }
 
-    if (reader.startsWith('qrtr:')) {
+    if (reader.startsWith('qrtr:') || reader.startsWith('hal:')) {
       return Icons.memory_rounded;
     }
 
