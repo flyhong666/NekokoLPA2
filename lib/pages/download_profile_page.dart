@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../logic/profile_manager.dart';
 import '../adapter/euicc_adapter.dart';
+import '../adapter/se_hal_adapter.dart';
+import '../adapter/se_hal_host.dart';
 import '../models/activation_code.dart';
 import '../models/asn1/rsp_definitions.g.dart';
 import '../services/es9plus_service.dart';
@@ -167,7 +169,7 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
     _matchingIdFocusNode.addListener(() { if (!_matchingIdFocusNode.hasFocus) setState(() => _touchedFields.add('matchingId')); });
     _ccFocusNode.addListener(() { if (!_ccFocusNode.hasFocus) setState(() => _touchedFields.add('cc')); });
 
-    if (widget.initialCode != null && widget.autoStart) {
+    if (widget.initialCode != null && widget.autoStart && !_isHalDownload) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _startPreview();
       });
@@ -331,7 +333,33 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
       _log.warning('Page closed with an RSP session still open; not cancelled');
     }
     _sessionChannel?.close();
+    if (_isHalDownload) {
+      SeHalHost.halEndDownload(_halSlot).catchError((Object e) {
+        _log.warning('Could not clear HAL download approval: $e');
+      });
+    }
     super.dispose();
+  }
+
+  int get _halSlot => SeHalAdapter.slotFor(widget.reader);
+
+  bool get _isHalDownload => widget.reader.source is SeHalAdapter;
+
+  Future<bool> _confirmHalDownload({required bool write}) async {
+    if (!_isHalDownload) return true;
+    final l10n = AppLocalizations.of(context)!;
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.seHalDownloadTitle),
+        content: Text(write ? l10n.seHalInstallWarning : l10n.seHalPreviewWarning),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: Text(write ? l10n.seHalAcceptInstall : l10n.seHalContinuePreview)),
+        ],
+      ),
+    ) ?? false;
   }
 
   Future<void> _startPreview() async {
@@ -440,10 +468,13 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
 
 
      if (!retryingInstall) {
+       if (!await _confirmHalDownload(write: false) || !mounted) return null;
        setState(() {
          _isLoading = true;
          _error = null;
          _statusMessage = AppLocalizations.of(context)!.connectingToEuicc;
+         _metadata = null;
+         _session = null;
        });
      }
 
@@ -456,6 +487,9 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
        await _waitForBackgroundCardWork();
        if (!retryingInstall) {
          await widget.adapter.connect(widget.reader);
+         if (_isHalDownload) {
+           await SeHalHost.halBeginDownload(_halSlot);
+         }
          _sessionChannel?.close();
        }
        _sessionChannel = null;
@@ -690,6 +724,8 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
   Future<void> _downloadProfile() async {
     final previewSession = _session;
     if (previewSession == null || _metadata == null) return;
+    if (!await _confirmHalDownload(write: true) || !mounted) return;
+    final l10n = AppLocalizations.of(context)!;
 
     final activationCode = ActivationCode.parse(_controller.text);
     if (activationCode == null) return;
@@ -706,7 +742,8 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
 
     int? bppSize;
     try {
-      await ProfileDownloadRetry(maxAttempts: 3).run<void>(
+      // A Bluetooth retry re-runs the install; the SE HAL never resends a write.
+      await ProfileDownloadRetry(maxAttempts: _isHalDownload ? 1 : 3).run<void>(
         (attempt) async {
           bppSize = null;
           _log.info(
@@ -718,6 +755,7 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
             activationCode: activationCode,
             confirmationCode: confirmationCode,
             onBppSize: (value) => bppSize = value,
+            l10n: l10n,
           );
         },
         beforeRetry: (event) async {
@@ -751,6 +789,7 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
     required ActivationCode activationCode,
     required String? confirmationCode,
     required ValueChanged<int?> onBppSize,
+    required AppLocalizations l10n,
   }) async {
      int? bppSize;
      Channel? channel;
@@ -811,7 +850,7 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
         }
 
         final settings = AppSettings();
-        if (settings.notifProcessBeforeDownload &&
+        if (!_isHalDownload && settings.notifProcessBeforeDownload &&
             settings.isAnyNotificationProcessingEnabled) {
           try {
             await NotificationService().processPendingNotifications(
@@ -901,6 +940,13 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
               )
             : null;
 
+        if (_isHalDownload) {
+          final installed = await widget.profileManager.listProfiles(useChannel: channel);
+          if (_installedIccid == null || !installed.any((p) => IccidFormatter.forDisplay(p.iccid) == _installedIccid)) {
+            throw InstallationException(l10n.seHalInstallNotVerified);
+          }
+        }
+
         // Post-installation: Get updated free space.
         //
         // The eUICC will report its free space to a plain ES10b GetEUICCInfo2,
@@ -910,7 +956,7 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
         // statistics off nothing consumes the signature, so take the cheap path
         // -- the consumed size is still recorded locally either way.
         final wantsSignedInfo2 = AppSettings().enableNekokoStats;
-        if (_euiccInfo1Bytes != null && wantsSignedInfo2) {
+        if (_euiccInfo1Bytes != null && wantsSignedInfo2 && !_isHalDownload) {
           try {
              if (mounted) {
                setState(() => _statusMessage = AppLocalizations.of(context)!.finalizing);
@@ -1021,7 +1067,17 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
             }
          }
 
-        if (settings.notifProcessAfterInstall &&
+        if (_isHalDownload) {
+          try {
+            await NotificationService().processPendingNotifications(widget.profileManager, channel,
+              autoSendInstall: true, autoRemoveInstall: false,
+              autoSendEnable: true, autoRemoveEnable: false, deleteWithoutSendingEnable: false,
+              autoSendDisable: true, autoRemoveDisable: false, deleteWithoutSendingDisable: false,
+              autoSendDelete: false, autoRemoveDelete: false);
+          } catch (e) { _log.warning('HAL installation notification reporting failed; send manually: $e'); }
+        }
+
+        if (!_isHalDownload && settings.notifProcessAfterInstall &&
             settings.isAnyNotificationProcessingEnabled) {
           try {
             await NotificationService().processPendingNotifications(
@@ -1077,22 +1133,32 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: !_isLoading && !_isInternalUpdating && NotificationService().pendingCount.value == 0,
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop || !mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.downloadBusyCannotLeave),
+    final notifications = NotificationService();
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        notifications.isProcessing,
+        notifications.isFetching,
+      ]),
+      builder: (context, _) => PopScope(
+        canPop: !_isLoading &&
+            !_isInternalUpdating &&
+            !notifications.isProcessing.value &&
+            !notifications.isFetching.value,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop || !mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.downloadBusyCannotLeave),
+            ),
+          );
+        },
+        child: StyledHeaderScaffold(
+          title: AppLocalizations.of(context)!.downloadProfileTitle,
+          body: SizedBox(
+            width: double.infinity,
+            height: double.infinity,
+            child: _buildContent(context),
           ),
-        );
-      },
-      child: StyledHeaderScaffold(
-        title: AppLocalizations.of(context)!.downloadProfileTitle,
-        body: SizedBox(
-          width: double.infinity,
-          height: double.infinity,
-          child: _buildContent(context),
         ),
       ),
     );
@@ -1365,7 +1431,9 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
                   const SizedBox(height: 32),
                   FilledButton(
                     onPressed: _startPreview,
-                    child: Text(l10n.continueButton),
+                    child: Text(_isHalDownload
+                      ? l10n.seHalDownloadUnusedQr
+                      : l10n.continueButton),
                   ),
                ],
             ),
@@ -1973,9 +2041,9 @@ class _DownloadProfilePageState extends State<DownloadProfilePage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       FilledButton.icon(
-                        onPressed: _handleEnable,
+                        onPressed: _isHalDownload ? () => Navigator.pop(context, true) : _handleEnable,
                         icon: const Icon(Icons.flash_on),
-                        label: Text(AppLocalizations.of(context)!.enableProfileNow),
+                        label: Text(_isHalDownload ? AppLocalizations.of(context)!.seHalReturnToEnable : AppLocalizations.of(context)!.enableProfileNow),
                         style: FilledButton.styleFrom(
                           backgroundColor: theme.colorScheme.primary,
                           foregroundColor: theme.colorScheme.onPrimary,
