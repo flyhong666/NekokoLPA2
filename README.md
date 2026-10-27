@@ -24,6 +24,12 @@ Experimental reader-backed Wi-Fi calling is available through the iOS Manage
 screen. It requires an external SIM reader, not the phone's internal SIM;
 see [build instructions and limitations](docs/ios-vowifi.txt).
 
+Experimental desktop VoWiFi/SMS is also included on Windows, macOS and Linux.
+Enable VoWiFi in Settings, accept its experimental-feature notice, then use
+"Load current SIM to VoWiFi" on a connected external reader. It is off by
+default and unavailable in 9eSIM-branded builds. This desktop implementation
+provides SMS; the reader-backed iOS calling feature above is a separate path.
+
 | Connection Type | Android | iOS | macOS | Linux | Windows | Chrome |
 | --- | --- | --- | --- | --- | --- | --- |
 | BLE readers | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
@@ -49,6 +55,9 @@ Translations are managed on [Crowdin](https://crowdin.com/project/nekokolpa2).
 ## Features
 
 - **Multi-reader support**: BLE, USB CCID, OMAPI, Telephony API, remote readers, and browser-based transports
+- **TYBLE readers**: Tianyu readers with names such as `SCT-BT-<UID>` and `TES-BT-<UID>`, plus 9eSIM B0 Plus readers named `9eSIM` followed by eight digits. Six-character 9eSIM suffixes continue to use the NineESIM protocol. TYBLE uses the BLE platforms listed above.
+- **SIM probing**: Plain SIMs can show their operator and identity details on the unsupported-card screen when the connected reader permits raw APDUs.
+- **Desktop VoWiFi/SMS**: Optional experimental SMS sessions backed by an external SIM reader on Windows, macOS and Linux
 - **Rooted Android path**: `OTBridge` can enable Telephony support and bypass OMAPI ARA-M restrictions while keeping the main app unprivileged
 - **Profile organization**: Custom icons, notes, tags, and compact management tools
 - **Scheduled notifications**: Reminders for expiry and other profile-related events

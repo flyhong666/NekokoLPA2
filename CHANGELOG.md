@@ -2,6 +2,13 @@
 
 All notable changes to NekokoLPA2 will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- Published TYBLE reader support, including eight-digit 9eSIM B0 Plus names and authentication using the advertised device UID.
+- Published experimental desktop VoWiFi/SMS for Windows, macOS and Linux, with explicit opt-in and the existing 9eSIM-build restriction.
+- Published plain-SIM identity and operator probing for readers that support raw APDUs.
+
 ## [2.2.5+587] - 2026-09-24
 
 ### Changed

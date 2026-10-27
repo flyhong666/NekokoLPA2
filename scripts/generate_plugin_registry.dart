@@ -1,6 +1,13 @@
 import 'dart:io';
 
-void main() {
+void main(List<String> arguments) {
+  if (arguments.any((argument) => argument != '--public')) {
+    stderr.writeln(
+      'Usage: dart run scripts/generate_plugin_registry.dart [--public]',
+    );
+    exit(2);
+  }
+
   final directory = Directory('lib/plugins');
   if (!directory.existsSync()) {
     stderr.writeln(
@@ -9,9 +16,29 @@ void main() {
     exit(1);
   }
 
-  final files = directory.listSync().whereType<File>().where(
-    (f) => f.path.endsWith('.dart'),
-  );
+  Iterable<File> files;
+  if (arguments.contains('--public')) {
+    // An overlay checkout also contains private plugins. Only publish the
+    // plugins tracked (including staged additions) by this repository.
+    final result = Process.runSync('git', [
+      'ls-files',
+      '-z',
+      '--',
+      'lib/plugins/*.dart',
+    ]);
+    if (result.exitCode != 0) {
+      stderr.write(result.stderr);
+      exit(result.exitCode);
+    }
+    files = (result.stdout as String)
+        .split('\u0000')
+        .where((path) => path.isNotEmpty)
+        .map(File.new);
+  } else {
+    files = directory.listSync().whereType<File>().where(
+      (file) => file.path.endsWith('.dart'),
+    );
+  }
 
   List<String> imports = [];
   List<String> profilePlugins = [];
@@ -25,7 +52,7 @@ void main() {
   );
 
   for (var file in files) {
-    final filename = file.path.split(Platform.pathSeparator).last;
+    final filename = file.uri.pathSegments.last;
     if (filename == 'plugin_base.dart' ||
         filename == 'session_plugin.dart' ||
         filename == 'plugin_manager.dart' ||
@@ -81,11 +108,15 @@ ${sessionPlugins.join('\n')}
       };
 
   static List<ProfilePlugin> createPlugins() {
-    return _profileFactories.values.map((factory) => factory()).toList(growable: false);
+    return _profileFactories.values
+        .map((factory) => factory())
+        .toList(growable: false);
   }
 
   static List<SessionPlugin> createSessionPlugins() {
-    return _sessionFactories.values.map((factory) => factory()).toList(growable: false);
+    return _sessionFactories.values
+        .map((factory) => factory())
+        .toList(growable: false);
   }
 }
 ''';

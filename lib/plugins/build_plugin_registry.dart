@@ -5,6 +5,9 @@ import 'bee_sim_plugin.dart';
 import 'estk_plugin.dart';
 import 'gm_plugin.dart';
 import 'nekoko_stats_plugin.dart';
+import 'ty_ble_plugin.dart';
+import 'vowifi_plugin.dart';
+import 'vowifi_sim_probe_plugin.dart';
 import 'plugin_base.dart';
 import 'session_plugin.dart';
 
@@ -16,22 +19,29 @@ class BuildPluginRegistry {
 
   static final Map<String, ProfilePluginFactory> _profileFactories =
       <String, ProfilePluginFactory>{
-        'NekokoStatsPlugin': NekokoStatsPlugin.new,
-        'EstkPlugin': EstkPlugin.new,
         'BeeSimPlugin': BeeSimPlugin.new,
+        'EstkPlugin': EstkPlugin.new,
+        'NekokoStatsPlugin': NekokoStatsPlugin.new,
+        'TyBlePlugin': TyBlePlugin.new,
+        'VowifiPlugin': VowifiPlugin.new,
+        'VowifiSimProbePlugin': VowifiSimProbePlugin.new,
       };
 
   static final Map<String, SessionPluginFactory> _sessionFactories =
       <String, SessionPluginFactory>{
-        'GmPlugin': GmPlugin.new,
         'EstkPlugin': EstkPlugin.new,
+        'GmPlugin': GmPlugin.new,
       };
 
   static List<ProfilePlugin> createPlugins() {
-    return _profileFactories.values.map((factory) => factory()).toList(growable: false);
+    return _profileFactories.values
+        .map((factory) => factory())
+        .toList(growable: false);
   }
 
   static List<SessionPlugin> createSessionPlugins() {
-    return _sessionFactories.values.map((factory) => factory()).toList(growable: false);
+    return _sessionFactories.values
+        .map((factory) => factory())
+        .toList(growable: false);
   }
 }
