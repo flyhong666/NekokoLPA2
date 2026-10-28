@@ -146,7 +146,7 @@ When reporting a problem, include the app version, operating system, reader mode
 - [![Get it on Google Play](https://img.shields.io/badge/Google%20Play-Download-34A853?logo=googleplay&logoColor=white&style=for-the-badge)](https://play.google.com/store/apps/details?id=ee.nekoko.nlpa)
 - **GitHub Releases**: [iebb/NekokoLPA2 releases](https://github.com/iebb/NekokoLPA2/releases)
 - **TestFlight**: [Join TestFlight](https://testflight.apple.com/join/bP38fzC4)
-- **Web**: [web.lpa.ee](https://web.lpa.ee)
+- **Web**: [Open the web app](https://iebb.github.io/NekokoLPA2/) — [release deployment guide](docs/web-release.md)
 
 ## Star History
 
