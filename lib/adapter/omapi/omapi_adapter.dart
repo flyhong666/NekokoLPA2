@@ -123,6 +123,11 @@ class OmapiAdapter extends BaseAdapter {
   @override
   bool get supportsRawApdu => false;
 
+  void invalidateReaderCache() {
+    _lastReaders = null;
+    _lastListTime = null;
+  }
+
   @override
   Future<List<Reader>> listReaders({bool force = false}) async {
     final now = DateTime.now();

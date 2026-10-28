@@ -13,13 +13,15 @@ Current source/build comparison, 2026-10-28. **Open** means an app built entirel
 | Reader-backed iOS calling source | Public, with its source-built framework | Same source in the standard Apple build |
 | Android/OMAPI VoWiFi restriction | Disabled, including rooted/bridge configurations | Same |
 | OTBridge helper and full rooted app/module | Public source and builds | Same helper; vendor-signed full rooted build also retained |
-| eSIM.cc profile extras | No private add-on | Rewards/card-bonus badge and portal action |
-| eSIM.gg profile extras | No private add-on | Matching-profile number, balance and package/data status when returned by the service |
+| eSIM.cc profile extras | Rewards/card-bonus badge and portal action | Same public plugin |
+| eSIM.gg profile extras | Matching-profile number, balance and package/data status when returned by the service | Same public plugin |
 | 3HK profile extras | No private add-on | Matching-profile number/expiry/package status when returned by the service |
 | Extra navigation | No private variant web tabs | Optional Discover tab for standard builds; provider/store tabs in the 9eSIM variant |
 | Branding | Public community/platform assets | Standard, multi-signer, community, 9eSIM and other flavor assets |
 
-Open can still install and manage eSIM.cc, eSIM.gg and 3HK profiles when the reader/card permits it. The omitted pieces are provider-specific UI/status integrations, not their basic profile operations. The eSIM.gg and 3HK add-ons perform service queries for matching profiles; those particular queries are absent from Open. Public plugins such as BeeSIM, eSTK and GM remain included.
+Open includes the eSIM.cc and eSIM.gg integrations. eSIM.gg queries the provider status service for matching profiles and caches returned number/balance/package information. Only the 3HK status add-on remains private; basic 3HK profile management still uses the shared LPA. BeeSIM, eSTK and GM remain public.
+
+This compares current source. The original public 2.4.0+600 APKs predate the eSIM.cc/eSIM.gg promotion and the OMAPI restart fix; those changes require a newer app build.
 
 Windows, macOS and Linux use the same core reader/IMS code in both distributions. OS limits still apply equally: for example, the app has no Linux BLE transport. Desktop IMS provides experimental SMS; the separate iOS implementation provides reader-backed calling. The 9eSIM-branded variant disables desktop IMS even though Open and standard builds include it.
 

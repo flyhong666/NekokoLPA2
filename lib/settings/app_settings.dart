@@ -628,9 +628,11 @@ class AppSettings extends ChangeNotifier {
           otbridgeHasTmapi = slots.any(
             (s) => s['id']?.toString().startsWith('tmapi:') == true,
           );
-        } catch (_) {
-          otbridgeHasOmapi = true;
-          otbridgeHasTmapi = true;
+        } catch (error) {
+          // An installed but unavailable helper is not evidence that it can replace built-in readers.
+          _log.warning(
+            'OTBridge discovery failed; keeping built-in reader defaults: $error',
+          );
         }
       }
     }

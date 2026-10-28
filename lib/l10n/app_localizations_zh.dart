@@ -2956,6 +2956,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String seHalDeleteUnknown(String error) {
     return 'The deletion could not be confirmed: $error\nRefresh the profile list to check.';
   }
+
+  @override
+  String get pluginEsimCcRewards => 'eSIM.cc Rewards';
+
+  @override
+  String get pluginEsimCcPortal => 'eSIM.cc Portal';
+
+  @override
+  String get pluginEsimGgProfile => 'eSIM.gg Profile';
+
+  @override
+  String get pluginEsimGgPortal => 'eSIM.gg Portal';
+
+  @override
+  String get pluginEsimGgWelcome => 'Welcome to eSIM.gg Portal';
+
+  @override
+  String get pluginVisitWebsite => 'Visit Website';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).

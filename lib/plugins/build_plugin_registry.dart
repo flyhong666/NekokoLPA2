@@ -2,6 +2,8 @@
 // Run `dart run scripts/generate_plugin_registry.dart` to update.
 
 import 'bee_sim_plugin.dart';
+import 'esim_cc_plugin.dart';
+import 'esim_gg_plugin.dart';
 import 'estk_plugin.dart';
 import 'gm_plugin.dart';
 import 'nekoko_stats_plugin.dart';
@@ -20,6 +22,8 @@ class BuildPluginRegistry {
   static final Map<String, ProfilePluginFactory> _profileFactories =
       <String, ProfilePluginFactory>{
         'BeeSimPlugin': BeeSimPlugin.new,
+        'EsimCcPlugin': EsimCcPlugin.new,
+        'EsimGgPlugin': EsimGgPlugin.new,
         'EstkPlugin': EstkPlugin.new,
         'NekokoStatsPlugin': NekokoStatsPlugin.new,
         'TyBlePlugin': TyBlePlugin.new,

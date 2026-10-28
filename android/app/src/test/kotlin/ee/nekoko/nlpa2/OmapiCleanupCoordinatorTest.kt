@@ -116,6 +116,7 @@ class OmapiCleanupCoordinatorTest {
                         safetyStore = safetyStore,
                         bootIdentityProvider = OmapiBootIdentityProvider { bootIdentity },
                         nowEpochMillis = { 1234L },
+                        hasOpenChannels = { channels.values.any { it.isNotEmpty() } },
                 )
     }
 
@@ -530,6 +531,59 @@ class OmapiCleanupCoordinatorTest {
         assertTrue(fixture.safetyStore.persisted == null)
         assertTrue(fixture.coordinator.enterHardware(OmapiHardwareEntry.CONNECT) == null)
         assertEquals(2, fixture.safetyStore.armCalls.get())
+    }
+
+    @Test
+    fun discoveryIdleCheckpointAllowsSameBootProcessRestart() {
+        val first = Fixture()
+        assertTrue(first.coordinator.enterHardware(OmapiHardwareEntry.INITIALIZE_SERVICE) == null)
+        assertEquals(PersistedOmapiSafetyKind.ARMED, first.safetyStore.persisted?.kind)
+        assertTrue(first.coordinator.confirmCleanIdle() == null)
+        val restarted = Fixture(safetyStore = first.safetyStore)
+        assertTrue(restarted.coordinator.poisonInfo == null)
+        assertTrue(restarted.coordinator.enterHardware(OmapiHardwareEntry.LIST_READERS) == null)
+    }
+
+    @Test
+    fun successfulChannelCleanupAndIdleCheckpointAllowRestartWithoutReboot() {
+        val first = Fixture(channels = mutableMapOf("SIM1" to mutableListOf("aid")))
+        assertTrue(first.coordinator.enterHardware(OmapiHardwareEntry.TRANSMIT) == null)
+        assertEquals(OmapiCleanupResult.Success, first.coordinator.cleanupAll())
+        assertTrue(first.coordinator.confirmCleanIdle() == null)
+        val restarted = Fixture(safetyStore = first.safetyStore)
+        assertTrue(restarted.coordinator.poisonInfo == null)
+        assertEquals(listOf("aid"), first.backend.closed)
+        assertEquals(0, first.backend.closeSessionChannelsCalls)
+        assertEquals(0, first.backend.closeSessionCalls)
+    }
+
+    @Test
+    fun idleCheckpointRetainsAReusableEmptySessionWithoutARebootMarker() {
+        val first = Fixture(sessions = mutableSetOf("SIM1"))
+        assertTrue(first.coordinator.enterHardware(OmapiHardwareEntry.CONNECT) == null)
+        assertTrue(first.coordinator.confirmCleanIdle() == null)
+        assertTrue("SIM1" in first.sessions)
+        assertTrue(first.safetyStore.persisted == null)
+        assertEquals(0, first.backend.closeSessionCalls)
+        assertTrue(Fixture(safetyStore = first.safetyStore).coordinator.poisonInfo == null)
+    }
+
+    @Test
+    fun idleCheckpointCannotClearARealFailedClose() {
+        val first = Fixture(channels = mutableMapOf("SIM1" to mutableListOf("aid")))
+        first.backend.failOn = "aid"
+        assertTrue(first.coordinator.cleanupAll() is OmapiCleanupResult.RebootRequired)
+        assertTrue(first.coordinator.confirmCleanIdle() != null)
+        assertEquals(PersistedOmapiSafetyKind.POISONED, first.safetyStore.persisted?.kind)
+        assertTrue(Fixture(safetyStore = first.safetyStore).coordinator.poisonInfo != null)
+    }
+
+    @Test
+    fun idleCheckpointCannotForgetLiveSessions() {
+        val first = Fixture(channels = mutableMapOf("SIM1" to mutableListOf("aid")))
+        assertTrue(first.coordinator.enterHardware(OmapiHardwareEntry.TRANSMIT) == null)
+        assertTrue(first.coordinator.confirmCleanIdle() != null)
+        assertEquals(listOf("aid"), first.channels["SIM1"])
     }
 
     @Test

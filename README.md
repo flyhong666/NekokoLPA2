@@ -17,6 +17,8 @@ NekokoLPA2 is a cross-platform eSIM management app for working with local eUICCs
 
 Choosing a download: [Open versus standard builds](docs/build-variants.md) · [OTBridge versus the rooted app](docs/android-root.md).
 
+Android OMAPI: [restart regression and recovery](docs/omapi-recovery.md).
+
 ## Get started
 
 1. Install the app from an [official download channel](#download).

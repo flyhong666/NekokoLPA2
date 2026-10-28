@@ -1174,5 +1174,11 @@
         "type": "String"
       }
     }
-  }
+  },
+  "pluginEsimCcRewards": "eSIM.cc Rewards",
+  "pluginEsimCcPortal": "eSIM.cc Portal",
+  "pluginEsimGgProfile": "eSIM.gg Profile",
+  "pluginEsimGgPortal": "eSIM.gg Portal",
+  "pluginEsimGgWelcome": "Welcome to eSIM.gg Portal",
+  "pluginVisitWebsite": "Visit Website"
 }

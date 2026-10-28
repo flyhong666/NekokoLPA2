@@ -15,6 +15,7 @@ import 'ble/ble_manager.dart';
 import 'nbridge/nbridge_adapter.dart';
 import 'adb_bridge/adb_bridge_adapter.dart';
 import 'omapi/omapi_adapter.dart';
+import 'omapi/omapi_safety.dart';
 import 'telephony/telephony_adapter.dart';
 import 'scrp/scrp_adapter.dart';
 import 'qrtr/qrtr_reader_adapter.dart';
@@ -123,6 +124,7 @@ class CompositeAdapter extends BaseAdapter {
   }
 
   Future<List<Reader>> _doListReaders({bool force = false}) async {
+    Object? omapiDiscoveryFailure;
     if (force) {
       _remoteInitTried.clear();
     }
@@ -246,9 +248,10 @@ class CompositeAdapter extends BaseAdapter {
     // 6. Built-in OMAPI
     if (PlatformX.isAndroid && AppSettings().enableOmapiConnector) {
       try {
-        addReaders(await _omapiAdapter.listReaders());
+        addReaders(await _omapiAdapter.listReaders(force: force));
       } catch (e) {
         _log.warning('Failed to list OMAPI readers: $e');
+        if (isOmapiSessionCorruptedError(e)) omapiDiscoveryFailure = e;
       }
     }
 
@@ -291,6 +294,10 @@ class CompositeAdapter extends BaseAdapter {
       _readerCache[r.id] = r;
     }
 
+    if (uniqueReaders.isEmpty && omapiDiscoveryFailure != null) {
+      // Show the reboot-required error instead of the unrelated Bluetooth/empty-reader prompt.
+      throw omapiDiscoveryFailure;
+    }
     return uniqueReaders.values.toList();
   }
 
@@ -697,9 +704,12 @@ class CompositeAdapter extends BaseAdapter {
 
     final type = event['type'];
 
-    // Ignore se_service_connected events - these are just initialization, not SIM changes
     if (type == 'se_service_connected') {
-      _log.info('SE service connected event - ignoring (not a SIM change)');
+      // Availability changed after asynchronous binding. Refresh discovery without treating it as
+      // a SIM reset, which would reconnect an active card operation.
+      _omapiAdapter.invalidateReaderCache();
+      _readerCache.clear();
+      _simChangeEventController.add(event);
       return;
     }
 

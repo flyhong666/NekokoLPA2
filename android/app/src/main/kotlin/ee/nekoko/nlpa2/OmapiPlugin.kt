@@ -19,8 +19,6 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 
 private fun ByteArray.toHex(): String =
         joinToString(separator = "") { eachByte -> "%02x".format(eachByte) }
@@ -39,6 +37,7 @@ class OmapiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private var eventSink: EventChannel.EventSink? = null
     private var context: Context? = null
     private var seService: SEService? = null
+    private var serviceReadiness: OmapiServiceReadiness? = null
 
     // Track open sessions and channels per reader - using thread-safe maps
     private val readerSessions = java.util.concurrent.ConcurrentHashMap<String, Session>()
@@ -101,6 +100,7 @@ class OmapiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                     },
                     safetyStore = SharedPreferencesOmapiSafetyStore(appContext),
                     bootIdentityProvider = AndroidOmapiBootIdentityProvider(appContext),
+                    hasOpenChannels = { readerChannels.values.any { it.isNotEmpty() } },
             )
 
     // Dedicated background thread for hardware operations
@@ -243,7 +243,7 @@ class OmapiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         val queued =
                 lifecycleCoordinator?.attach {
                     try {
-                        initializeSEService()
+                        initializeSEService().also { if (it) checkpointCleanIdle() }
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to initialize SEService during activity attach", e)
                         false
@@ -281,24 +281,29 @@ class OmapiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             return false
         }
 
-        val latch = CountDownLatch(1)
+        val readiness = OmapiServiceReadiness()
+        serviceReadiness = readiness
         seService =
                 SEService(appContext, { obj: Runnable -> obj.run() }) {
                     Log.d(TAG, "SE service connected")
                     sendEvent(mapOf("type" to "se_service_connected"))
-                    latch.countDown()
+                    readiness.onConnected()
                 }
 
-        if (wait) {
-            try {
-                if (!latch.await(3, TimeUnit.SECONDS)) {
-                    Log.w(TAG, "Timeout waiting for SE service connection")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error waiting for SE service connection", e)
-            }
+        if (wait && !readiness.awaitConnected({ seService?.isConnected == true })) {
+            Log.w(TAG, "Timeout waiting for SE service connection")
         }
         return true
+    }
+
+    /** Called only on the serialized backend, after hardware work has returned. */
+    private fun checkpointCleanIdle() {
+        if (cleanupCoordinator.poisonInfo != null || profileSwitchInProgress ||
+                        readerChannels.values.any { it.isNotEmpty() }) return
+        // Keep verified-empty sessions reusable; do not invoke bulk-close methods.
+        cleanupCoordinator.confirmCleanIdle()?.let {
+            Log.e(TAG, "Unable to confirm clean OMAPI idle state: ${it.reason}")
+        }
     }
 
     private fun shutdownServiceAfterCleanup(reason: String): Boolean {
@@ -342,6 +347,9 @@ class OmapiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
         if (call.method == "setProfileSwitchInProgress") {
             profileSwitchInProgress = call.argument<Boolean>("value") == true
+            if (!profileSwitchInProgress) {
+                lifecycleCoordinator?.enqueueHardware(onRejected = {}, operation = { checkpointCleanIdle() })
+            }
             result.success(true)
             return
         }
@@ -400,6 +408,7 @@ class OmapiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                                         "transmitOnChannel" -> handleTransmitOnChannel(call, result)
                                         "listReaders" -> handleListReaders(result)
                                     }
+                                    checkpointCleanIdle()
                                 } catch (e: Exception) {
                                     Log.e(TAG, "Error in background method: ${call.method}", e)
                                     runOnUiThread { result.error("ERROR", e.message, null) }
@@ -546,7 +555,8 @@ class OmapiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     @RequiresApi(Build.VERSION_CODES.P)
     private fun handleListReaders(result: Result) {
         if (rejectIfPoisoned(result)) return
-        if (seService == null || !seService!!.isConnected) {
+        val readiness = serviceReadiness
+        if (seService == null || readiness?.awaitConnected({ seService?.isConnected == true }) != true) {
             runOnUiThread { result.error("NOT_CONNECTED", "SE Service not connected", null) }
             return
         }

@@ -5626,6 +5626,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The deletion could not be confirmed: {error}\nRefresh the profile list to check.'**
   String seHalDeleteUnknown(String error);
+
+  /// No description provided for @pluginEsimCcRewards.
+  ///
+  /// In en, this message translates to:
+  /// **'eSIM.cc Rewards'**
+  String get pluginEsimCcRewards;
+
+  /// No description provided for @pluginEsimCcPortal.
+  ///
+  /// In en, this message translates to:
+  /// **'eSIM.cc Portal'**
+  String get pluginEsimCcPortal;
+
+  /// No description provided for @pluginEsimGgProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'eSIM.gg Profile'**
+  String get pluginEsimGgProfile;
+
+  /// No description provided for @pluginEsimGgPortal.
+  ///
+  /// In en, this message translates to:
+  /// **'eSIM.gg Portal'**
+  String get pluginEsimGgPortal;
+
+  /// No description provided for @pluginEsimGgWelcome.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to eSIM.gg Portal'**
+  String get pluginEsimGgWelcome;
+
+  /// No description provided for @pluginVisitWebsite.
+  ///
+  /// In en, this message translates to:
+  /// **'Visit Website'**
+  String get pluginVisitWebsite;
 }
 
 class _AppLocalizationsDelegate

@@ -2,6 +2,16 @@
 
 All notable changes to NekokoLPA2 will be documented in this file.
 
+## Unreleased
+
+### Added
+- Published eSIM.cc rewards/portal integration and eSIM.gg number, balance and package status integration.
+
+### Fixed
+- Clear the OMAPI crash guard only at a verified channel-free idle checkpoint, preventing normal app restarts from hiding built-in readers. Actual failed channel cleanup remains reboot-required.
+- Wait for asynchronous OMAPI service connection, refresh discovery when it connects, honor forced reader refresh and show reboot-required discovery errors instead of an empty-reader prompt.
+- Keep built-in reader defaults available if an installed OTBridge provider fails discovery.
+
 ## [2.4.0+600] - 2026-10-28
 
 ### Added

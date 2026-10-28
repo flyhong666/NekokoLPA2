@@ -120,6 +120,8 @@ internal class OmapiCleanupCoordinator<C>(
         private val safetyStore: OmapiSafetyStore,
         private val bootIdentityProvider: OmapiBootIdentityProvider,
         private val nowEpochMillis: () -> Long = System::currentTimeMillis,
+        // Callers without channel-level tracking retain the conservative session-level check.
+        private val hasOpenChannels: () -> Boolean = { readerKeys().isNotEmpty() },
 ) {
     private val cleanupLock = ReentrantLock()
     private val poison = AtomicReference<OmapiPoisonInfo?>()
@@ -213,18 +215,31 @@ internal class OmapiCleanupCoordinator<C>(
         }
     }
 
-    /** Clears the durable guard only after local cleanup and SEService shutdown both succeeded. */
-    fun confirmCleanShutdown(): OmapiPoisonInfo? =
+    /** Shutdown is one way to reach a verified session-free idle checkpoint. */
+    fun confirmCleanShutdown(): OmapiPoisonInfo? = confirmCleanIdle(requireNoSessions = true)
+
+    /**
+     * Clears ARMED only after every tracked channel was confirmed closed. Empty sessions may stay
+     * reusable; unlike a failed channel close, they cannot contain a stale closed channel.
+     * Actual poison and unknown/live session state remain fail-closed.
+     */
+    fun confirmCleanIdle(requireNoSessions: Boolean = false): OmapiPoisonInfo? =
             cleanupLock.withLock {
                 poison.get()?.let { return@withLock it }
-                if (readerKeys().isNotEmpty()) {
+                if (hasOpenChannels() || (requireNoSessions && readerKeys().isNotEmpty())) {
                     return@withLock markPoisonedLocked(
                             readerName = null,
                             reason = "Clean shutdown was requested while local OMAPI state remained",
                             operationMayHaveSucceeded = true,
                     )
                 }
-                if (!armed) return@withLock null
+                if (!armed) {
+                    if (requireNoSessions) {
+                        releaseProcessOwnershipLocked()
+                        armedBootIdentity = null
+                    }
+                    return@withLock null
+                }
 
                 val cleared =
                         try {
@@ -233,9 +248,13 @@ internal class OmapiCleanupCoordinator<C>(
                             false
                         }
                 if (cleared) {
-                    releaseProcessOwnershipLocked()
+                    // Idle clears the crash marker, not the live service's process-local lease.
+                    // A replacement engine must still wait for the old SEService to shut down.
+                    if (requireNoSessions) {
+                        releaseProcessOwnershipLocked()
+                        armedBootIdentity = null
+                    }
                     armed = false
-                    armedBootIdentity = null
                     return@withLock null
                 }
 

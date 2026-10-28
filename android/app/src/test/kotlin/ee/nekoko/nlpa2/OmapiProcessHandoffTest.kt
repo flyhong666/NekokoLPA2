@@ -113,6 +113,24 @@ class OmapiProcessHandoffTest {
     }
 
     @Test
+    fun idleCheckpointClearsCrashMarkerButKeepsLeaseUntilServiceShutdown() {
+        val state = SharedState()
+        val scope = Any()
+        val first = coordinator(ProcessAwareStore(state, scope))
+        assertNull(first.enterHardware(OmapiHardwareEntry.CONNECT))
+        assertNull(first.confirmCleanIdle())
+        assertNull(state.persisted)
+
+        val replacement = coordinator(ProcessAwareStore(state, scope))
+        assertEquals(OMAPI_PROCESS_HANDOFF_PENDING_REASON,
+                replacement.enterHardware(OmapiHardwareEntry.CONNECT)?.reason)
+        assertNull(replacement.poisonInfo)
+        assertNull(first.confirmCleanShutdown())
+        assertNull(replacement.enterHardware(OmapiHardwareEntry.CONNECT))
+        assertNull(replacement.confirmCleanShutdown())
+    }
+
+    @Test
     fun realProcessLossStillTreatsSurvivingArmedMarkerAsRebootRequired() {
         val firstState = SharedState()
         val first = coordinator(ProcessAwareStore(firstState, Any()))
