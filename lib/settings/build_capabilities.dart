@@ -38,4 +38,10 @@ class BuildCapabilities {
   }) {
     return available && storedEnabled && consentVersion == vowifiConsentVersion;
   }
+
+  static bool isVowifiReaderAvailable({
+    required bool isAndroid,
+    required bool isOmapi,
+    required bool supportsRawApdu,
+  }) => !isAndroid && !isOmapi && supportsRawApdu;
 }

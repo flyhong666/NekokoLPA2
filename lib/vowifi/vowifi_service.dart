@@ -9,6 +9,7 @@ import '../adapter/ble/red_ble2_adapter.dart';
 import '../adapter/ccid/ccid_adapter.dart';
 import '../adapter/euicc_adapter.dart';
 import '../utils/mcc_mapper.dart';
+import '../utils/vowifi_reader_support.dart';
 import 'apdu_exchange.dart';
 import 'call_store.dart';
 import 'connection_diagnostics.dart';
@@ -72,6 +73,7 @@ class VoWifiService extends ChangeNotifier {
   String? callHistoryError;
 
   static bool supports(Reader? reader) =>
+      supportsVowifiReader(reader) &&
       reader != null &&
       (reader.source is CcidAdapter ||
           reader.source is RedBleAdapter ||
@@ -173,6 +175,7 @@ class VoWifiService extends ChangeNotifier {
     if (!supports(reader)) {
       throw StateError('This reader does not support Wi-Fi calling');
     }
+    requireVowifiReader(adapter, reader);
     _generation = DateTime.now().microsecondsSinceEpoch;
     _cancelStart = false;
     error = null;

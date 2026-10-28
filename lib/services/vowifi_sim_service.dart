@@ -6,6 +6,7 @@ import '../adapter/euicc_adapter.dart';
 import '../adapter/omapi/omapi_adapter.dart';
 import '../models/asn1/rsp_definitions.g.dart';
 import '../settings/app_settings.dart';
+import '../utils/vowifi_reader_support.dart';
 import 'package:nlpa2/vowifi_sms/vowifi_sms_plugin.dart';
 import 'package:logging/logging.dart';
 
@@ -118,6 +119,7 @@ class VowifiSimService {
     required Uint8List autn,
     void Function(String line)? onLog,
   }) async {
+    requireVowifiReader(adapter, reader);
     _ensureBasicChannelSupported(reader);
     return runZoned(
       () => adapter.runExclusive(() async {
@@ -147,6 +149,40 @@ class VowifiSimService {
         return _parseAkaResponse(response);
       }),
       zoneValues: <Object?, Object?>{_apduLogKey: onLog},
+    );
+  }
+
+  Future<VowifiAkaResponse> authenticateDigestChallenge(
+    Adapter adapter,
+    Reader reader, {
+    required VowifiDigestChallenge challenge,
+    void Function(String line)? onLog,
+  }) async {
+    requireVowifiReader(adapter, reader);
+    final nonce = challenge.fields['nonce'] ?? '';
+    final bytes = RegExp(r'^[0-9a-fA-F]{64}$').hasMatch(nonce)
+        ? Uint8List.fromList([
+            for (var i = 0; i < nonce.length; i += 2)
+              int.parse(nonce.substring(i, i + 2), radix: 16),
+          ])
+        : base64.decode(base64.normalize(nonce));
+    if (bytes.length < 32 || bytes.length > 256) {
+      throw const FormatException('Invalid IMS AKA nonce length');
+    }
+    final aka = await authenticateIms(
+      adapter,
+      reader,
+      rand: Uint8List.fromList(bytes.sublist(0, 16)),
+      autn: Uint8List.fromList(bytes.sublist(16, 32)),
+      onLog: onLog,
+    );
+    // AUTS is a resynchronization response, not a failed connection. SIP sends
+    // it with an empty digest password and waits for the network's fresh nonce.
+    return VowifiAkaResponse(
+      res: aka.res,
+      ck: aka.ck,
+      ik: aka.ik,
+      auts: aka.auts,
     );
   }
 

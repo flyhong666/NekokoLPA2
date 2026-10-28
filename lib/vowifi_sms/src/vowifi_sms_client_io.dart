@@ -5,9 +5,8 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:crypto/crypto.dart';
-
 import 'epdg_tunnel.dart';
+import 'ims_digest.dart';
 import 'models.dart';
 import 'sms_codec.dart';
 
@@ -41,6 +40,10 @@ class VowifiSmsClient {
   StreamSubscription<Uint8List>? _socketSubscription;
   BytesBuilder _buffer = BytesBuilder(copy: false);
   Completer<_SipMessage>? _pendingResponse;
+  _SipMessage? _pendingRequest;
+  final _digest = ImsDigestAuth();
+  List<String> _serviceRoutes = const [];
+  int? _registrationExpires;
   int _cseq = 1;
   int _smsMr = 0;
   final String _fromTag = _randomToken(10);
@@ -89,6 +92,9 @@ class VowifiSmsClient {
   }
 
   Future<void> connectAndRegister() async {
+    if (Platform.isAndroid) {
+      throw UnsupportedError('VoWiFi is disabled on Android.');
+    }
     _requireConfig();
     if (_state == VowifiSmsConnectionState.registered) {
       return;
@@ -133,8 +139,15 @@ class VowifiSmsClient {
     await _connection?.close();
     _connection = null;
     _buffer = BytesBuilder(copy: false);
-    _pendingResponse?.completeError(StateError('Disconnected'));
+    final pending = _pendingResponse;
+    if (pending != null && !pending.isCompleted) {
+      pending.completeError(StateError('Disconnected'));
+    }
     _pendingResponse = null;
+    _pendingRequest = null;
+    _serviceRoutes = const [];
+    _registrationExpires = null;
+    _digest.clear();
     _smsReportQueue.clear();
     _smsReportNotifier = null;
     _recentIncomingKeys.clear();
@@ -186,6 +199,7 @@ class VowifiSmsClient {
         method: 'MESSAGE',
         uri: requestUri,
         rawHeader: _challengeHeader(response),
+        body: rpdu,
       );
       response = await _sendRequestAwaitResponse(
         _buildMessageRequest(
@@ -252,10 +266,22 @@ class VowifiSmsClient {
     var response = await _sendRequestAwaitResponse(step1);
     _log('REGISTER step1 status=${response.startLine}');
     var authRound = 0;
-    while (_isDigestChallenge(response) && authRound < 2) {
-      _log(
-        'REGISTER challenge auth="${_challengeHeader(response)}" security-server="${response.header('security-server')}"',
-      );
+    var expiryRetried = false;
+    while (true) {
+      if (response.statusCode == 423 && !expiryRetried) {
+        final minimum = int.tryParse(response.header('min-expires'));
+        if (minimum == null || minimum <= 0 || minimum > 0x7fffffff) {
+          throw const FormatException('Invalid IMS Min-Expires');
+        }
+        _registrationExpires = minimum > config.registerExpires
+            ? minimum
+            : config.registerExpires;
+        expiryRetried = true;
+        response = await _sendRequestAwaitResponse(_buildRegister());
+        continue;
+      }
+      if (!_isDigestChallenge(response) || authRound >= 3) break;
+      _log('REGISTER authentication challenge round=${authRound + 1}');
       final securityServer = response.header('security-server');
       if (securityServer.isNotEmpty) {
         _applySecurityServerSelection(securityServer);
@@ -296,10 +322,24 @@ class VowifiSmsClient {
       _log(
         'REGISTER rejected status=${response.startLine} require="${response.header('require')}" proxy-require="${response.header('proxy-require')}" unsupported="${response.header('unsupported')}" warning="${response.header('warning')}"',
       );
-      _log('REGISTER reject headers=${response.headers}');
+      _serviceRoutes = const [];
       throw StateError('REGISTER failed: ${response.startLine}');
     }
 
+    final routes = <String>[
+      for (final value in response.headers['service-route'] ?? const <String>[])
+        ...splitSipHeaderValues(value),
+    ];
+    if (routes.length > 32 ||
+        routes.any(
+          (route) => !RegExp(
+            r'<sips?:[^<>\s]+;lr(?:[;?][^<>\s]*)?>',
+            caseSensitive: false,
+          ).hasMatch(route),
+        )) {
+      throw const FormatException('Invalid IMS Service-Route');
+    }
+    _serviceRoutes = routes;
     _registeredUntil = _extractRegistrationExpiry(response);
     _associatedIdentities = _extractAssociatedIdentities(response);
     _publicIdentity = _extractAssociatedIdentity(response);
@@ -375,41 +415,60 @@ class VowifiSmsClient {
     }
     final completer = Completer<_SipMessage>();
     _pendingResponse = completer;
-    await _connection!.send(Uint8List.fromList(request));
-    // _logPacket('tx', request);
+    _pendingRequest = _SipMessage.parse(request);
+    final deadline = Timer(timeout, () {
+      if (!completer.isCompleted) {
+        completer.completeError(
+          TimeoutException('IMS SIP transaction timed out', timeout),
+        );
+      }
+    });
     try {
-      final response = await completer.future.timeout(timeout);
+      final results = await Future.wait<Object?>([
+        completer.future,
+        _connection!.send(Uint8List.fromList(request)),
+      ], eagerError: true);
+      final response = results.first as _SipMessage;
       _logResponse(response);
       return response;
     } finally {
+      deadline.cancel();
       if (identical(_pendingResponse, completer)) {
         _pendingResponse = null;
+        _pendingRequest = null;
       }
     }
   }
 
   void _onData(Uint8List data) {
-    // _logPacket('rx', data);
-    _buffer.add(data);
-    while (true) {
-      final message = _tryParseMessage(_buffer.takeBytes());
-      if (message.message == null) {
-        if (message.remaining.isNotEmpty) {
-          _buffer.add(message.remaining);
-        }
-        break;
+    try {
+      _buffer.add(data);
+      while (true) {
+        final message = _tryParseMessage(_buffer.takeBytes());
+        if (message.remaining.isNotEmpty) _buffer.add(message.remaining);
+        if (message.message == null) break;
+        _handleMessage(message.message!);
       }
-      if (message.remaining.isNotEmpty) {
-        _buffer.add(message.remaining);
-      }
-      _handleMessage(message.message!);
+    } on FormatException catch (error) {
+      _buffer = BytesBuilder(copy: false);
+      _handleSocketError(error);
+      unawaited(_connection?.close());
     }
   }
 
   void _handleMessage(_SipMessage message) {
     if (message.isResponse) {
       final pending = _pendingResponse;
-      if (pending != null && !pending.isCompleted) {
+      final request = _pendingRequest;
+      if (pending != null &&
+          !pending.isCompleted &&
+          request != null &&
+          message.statusCode >= 200 &&
+          message.statusCode <= 699 &&
+          message.header('call-id') == request.header('call-id') &&
+          _cseqKey(message) == _cseqKey(request) &&
+          _viaBranch(message) == _viaBranch(request) &&
+          _viaBranch(request).isNotEmpty) {
         pending.complete(message);
       }
       return;
@@ -433,17 +492,15 @@ class VowifiSmsClient {
             ),
           );
           if (destination.isNotEmpty) {
-            unawaited(
-              _connection?.send(
-                Uint8List.fromList(
-                  _buildSmsRpAckRequest(
-                    destination: destination,
-                    inReplyTo: _firstNonEmpty(
-                      message.header('call-id'),
-                      message.header('callid'),
-                    ),
-                    body: ack,
+            _sendUntracked(
+              Uint8List.fromList(
+                _buildSmsRpAckRequest(
+                  destination: destination,
+                  inReplyTo: _firstNonEmpty(
+                    message.header('call-id'),
+                    message.header('callid'),
                   ),
+                  body: ack,
                 ),
               ),
             );
@@ -489,7 +546,7 @@ class VowifiSmsClient {
         : '${request.header('to')};tag=$_localToTag';
     final lines = <String>[
       'SIP/2.0 $statusCode $reason',
-      'Via: ${request.header('via')}',
+      for (final via in request.headers['via'] ?? const <String>[]) 'Via: $via',
       'From: ${request.header('from')}',
       'To: $to',
       'Call-ID: ${request.header('call-id')}',
@@ -499,17 +556,34 @@ class VowifiSmsClient {
       '',
     ];
     _log('SIP response tx: SIP/2.0 $statusCode $reason for ${request.method}');
+    _sendUntracked(Uint8List.fromList(ascii.encode(lines.join('\r\n'))));
+  }
+
+  void _sendUntracked(Uint8List data) {
+    final connection = _connection;
+    if (connection == null) return;
     unawaited(
-      _connection!.send(Uint8List.fromList(ascii.encode(lines.join('\r\n')))),
+      connection.send(data).catchError((Object error, StackTrace stack) {
+        if (identical(connection, _connection)) {
+          _handleSocketError(error, stack);
+        }
+      }),
     );
   }
 
   void _handleSocketDone() {
+    _failPending(StateError('IMS SIP connection closed'));
     _emitState(VowifiSmsConnectionState.disconnected, info: 'Socket closed');
   }
 
   void _handleSocketError(Object error, [StackTrace? _]) {
+    _failPending(error);
     _emitState(VowifiSmsConnectionState.error, error: error.toString());
+  }
+
+  void _failPending(Object error) {
+    final pending = _pendingResponse;
+    if (pending != null && !pending.isCompleted) pending.completeError(error);
   }
 
   bool _isSmsReport(VowifiSmsMessage message) {
@@ -587,7 +661,7 @@ class VowifiSmsClient {
       ['Require', 'sec-agree'],
       ['Proxy-Require', 'sec-agree'],
       ['Contact', contact],
-      ['Expires', config.registerExpires.toString()],
+      ['Expires', (_registrationExpires ?? config.registerExpires).toString()],
       ['Supported', 'outbound, path, gruu'],
       ['P-Visited-Network-ID', '"${config.domain}"'],
       ['P-Access-Network-Info', 'IEEE-802.11;i-wlan-node-id=ffffffffffff'],
@@ -637,6 +711,7 @@ class VowifiSmsClient {
       ['Proxy-Require', 'sec-agree'],
       ['User-Agent', _iphoneUserAgent],
       ['Content-Type', contentType],
+      for (final route in _serviceRoutes) ['Route', route],
     ];
     if (contentType.contains('application/vnd.3gpp.sms')) {
       headers.addAll(<List<String>>[
@@ -707,10 +782,18 @@ class VowifiSmsClient {
   }
 
   _ParsedMessage _tryParseMessage(Uint8List bytes) {
+    // RFC 5626 flow keepalives can precede the next stream message.
+    while (bytes.length >= 2 && bytes[0] == 13 && bytes[1] == 10) {
+      bytes = Uint8List.sublistView(bytes, 2);
+    }
     final separator = _indexOf(bytes, const <int>[13, 10, 13, 10]);
     if (separator < 0) {
+      if (bytes.length > 65536) {
+        throw const FormatException('SIP headers too large');
+      }
       return _ParsedMessage(null, bytes);
     }
+    if (separator > 65536) throw const FormatException('SIP headers too large');
     final headerText = latin1.decode(
       bytes.sublist(0, separator),
       allowInvalid: true,
@@ -720,14 +803,23 @@ class VowifiSmsClient {
       return _ParsedMessage(null, bytes);
     }
     var contentLength = 0;
+    var hasContentLength = false;
     for (final line in lines.skip(1)) {
       final index = line.indexOf(':');
       if (index <= 0) {
         continue;
       }
       final key = line.substring(0, index).trim().toLowerCase();
-      if (key == 'content-length') {
-        contentLength = int.tryParse(line.substring(index + 1).trim()) ?? 0;
+      if (key == 'content-length' || key == 'l') {
+        final parsed = int.tryParse(line.substring(index + 1).trim());
+        if (parsed == null || parsed < 0 || parsed > 1024 * 1024) {
+          throw const FormatException('Invalid SIP Content-Length');
+        }
+        if (hasContentLength && parsed != contentLength) {
+          throw const FormatException('Conflicting SIP Content-Length');
+        }
+        contentLength = parsed;
+        hasContentLength = true;
       }
     }
     final messageLength = separator + 4 + contentLength;
@@ -984,14 +1076,15 @@ class VowifiSmsClient {
     required String method,
     required String uri,
     required String rawHeader,
+    List<int> body = const [],
   }) async {
     final challenge = _parseAuthHeader(rawHeader);
     final realm = challenge['realm'] ?? config.requestRealm;
     final nonce = challenge['nonce'] ?? '';
-    final qop = config.mcc == '244'
-        ? (challenge['qop'] ?? '').split(',').first.trim()
-        : '';
     final algorithm = challenge['algorithm'] ?? 'MD5';
+    if (!ImsDigestAuth.supportsAlgorithm(algorithm)) {
+      throw UnsupportedError('Unsupported IMS digest algorithm: $algorithm');
+    }
     var secret = config.password;
     Uint8List? secretBytes;
     String? auts;
@@ -1017,6 +1110,9 @@ class VowifiSmsClient {
           secretBytes = Uint8List(0);
           _log('SIP Digest AKA synchronization failure; sending AUTS');
         } else {
+          if (_lastDigestAka!.res.isEmpty) {
+            throw StateError('No AKA RES available for SIP digest');
+          }
           secretBytes = Uint8List.fromList(_lastDigestAka!.res);
         }
       }
@@ -1042,35 +1138,18 @@ class VowifiSmsClient {
         : (config.username.contains('@')
               ? config.username
               : '${config.username}@${config.requestRealm}');
-    final cnonce = _randomToken(16);
-    const nc = '00000001';
-    final ha1Bytes = BytesBuilder(copy: false)
-      ..add(utf8.encode('$authUser:$realm:'))
-      ..add(secretBytes ?? Uint8List.fromList(utf8.encode(secret)));
-    final ha1 = md5.convert(ha1Bytes.takeBytes()).toString();
-    final ha2 = md5.convert(utf8.encode('$method:$uri')).toString();
-    final response = qop.isEmpty
-        ? md5.convert(utf8.encode('$ha1:$nonce:$ha2')).toString()
-        : md5
-              .convert(utf8.encode('$ha1:$nonce:$nc:$cnonce:$qop:$ha2'))
-              .toString();
-    final values = <String>[
-      'username="$authUser"',
-      'realm="$realm"',
-      'nonce="$nonce"',
-      'uri="$uri"',
-      'response="$response"',
-      'algorithm=$algorithm',
-    ];
-    if (auts != null) {
-      values.add('auts="$auts"');
-    }
-    if (qop.isNotEmpty) {
-      values.add('qop=$qop');
-      values.add('nc=$nc');
-      values.add('cnonce="$cnonce"');
-    }
-    return 'Digest ${values.join(', ')}';
+    return _digest.authorization(
+      username: authUser,
+      realm: realm,
+      nonce: nonce,
+      method: method,
+      uri: uri,
+      cnonce: _randomToken(16),
+      password: secretBytes ?? utf8.encode(secret),
+      challenge: challenge,
+      body: body,
+      auts: auts == null ? const [] : base64.decode(auts),
+    );
   }
 
   void _log(String line) {
@@ -1105,6 +1184,7 @@ class VowifiSmsClient {
     if (algorithm.toUpperCase().startsWith('AKAV1')) {
       return true;
     }
+    if (algorithm.toUpperCase() != 'MD5') return false;
     if (nonce.isEmpty) {
       return false;
     }
@@ -1159,34 +1239,31 @@ class VowifiSmsClient {
     }
     final identities = <String>[];
     for (final value in values) {
-      final uri = _extractUri(value);
-      if (uri.isNotEmpty && !identities.contains(uri)) {
-        identities.add(uri);
+      for (final item in splitSipHeaderValues(value)) {
+        final uri = _extractUri(item);
+        if ((uri.startsWith('sip:') ||
+                uri.startsWith('sips:') ||
+                uri.startsWith('tel:')) &&
+            !identities.contains(uri)) {
+          identities.add(uri);
+        }
       }
     }
     return identities;
   }
 
-  Map<String, String> _parseAuthHeader(String raw) {
-    final cleaned = raw.trim().replaceFirst(
-      RegExp(r'^Digest\s+', caseSensitive: false),
-      '',
-    );
-    final output = <String, String>{};
-    for (final item in cleaned.split(',')) {
-      final index = item.indexOf('=');
-      if (index <= 0) {
-        continue;
-      }
-      final key = item.substring(0, index).trim().toLowerCase();
-      final value = item
-          .substring(index + 1)
-          .trim()
-          .replaceAll(RegExp(r'^"|"$'), '');
-      output[key] = value;
-    }
-    return output;
-  }
+  Map<String, String> _parseAuthHeader(String raw) =>
+      parseImsDigestChallenge(raw);
+
+  String _viaBranch(_SipMessage message) =>
+      RegExp(
+        r'(?:^|;)\s*branch=([^;,\s]+)',
+        caseSensitive: false,
+      ).firstMatch(message.header('via'))?.group(1) ??
+      '';
+
+  String _cseqKey(_SipMessage message) =>
+      message.header('cseq').trim().split(RegExp(r'\s+')).join(' ');
 
   String _identityUri() {
     if (_preferredIdentityOverride.trim().isNotEmpty) {
@@ -1327,9 +1404,10 @@ abstract class _SipConnection {
 }
 
 class _SocketSipConnection implements _SipConnection {
-  const _SocketSipConnection(this.socket);
+  _SocketSipConnection(this.socket);
 
   final Socket socket;
+  Future<void> _writeTail = Future<void>.value();
 
   @override
   String get localHost => socket.address.address;
@@ -1362,13 +1440,21 @@ class _SocketSipConnection implements _SipConnection {
   }
 
   @override
-  Future<void> send(Uint8List data) async {
-    socket.add(data);
-    await socket.flush();
+  Future<void> send(Uint8List data) {
+    // Inbound SMS acknowledgements can overlap a new REGISTER/MESSAGE. A Dart
+    // socket cannot accept add() while another flush() has bound its sink.
+    final write = _writeTail.then((_) async {
+      socket.add(data);
+      await socket.flush();
+    });
+    _writeTail = write.then<void>((_) {}, onError: (Object _, StackTrace _) {});
+    return write;
   }
 
   @override
-  Future<void> close() => socket.close();
+  Future<void> close() => _writeTail.then((_) async {
+    await socket.close();
+  });
 }
 
 class _TunnelSipConnection implements _SipConnection {
@@ -1495,7 +1581,18 @@ class _SipMessage {
       if (index <= 0) {
         continue;
       }
-      final key = line.substring(0, index).trim().toLowerCase();
+      final rawKey = line.substring(0, index).trim().toLowerCase();
+      final key =
+          const {
+            'v': 'via',
+            'i': 'call-id',
+            'l': 'content-length',
+            'f': 'from',
+            't': 'to',
+            'm': 'contact',
+            'c': 'content-type',
+          }[rawKey] ??
+          rawKey;
       lastKey = key;
       headers
           .putIfAbsent(key, () => <String>[])

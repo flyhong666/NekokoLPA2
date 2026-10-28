@@ -9,6 +9,7 @@ import '../pages/vowifi_sms_page.dart';
 import '../services/vowifi_sms_service.dart';
 import '../widgets/profiles_screen/action_button.dart';
 import '../settings/app_settings.dart';
+import '../utils/vowifi_reader_support.dart';
 import 'plugin_base.dart';
 
 class VowifiPlugin extends ProfilePlugin {
@@ -77,9 +78,10 @@ class VowifiPlugin extends ProfilePlugin {
     final settings = AppSettings();
     if (!settings.vowifiEnabled) return [];
     final reader = actionContext.reader;
-    final source = reader?.source;
-    final supportedReader =
-        reader != null && source != null && source.supportsRawApdu;
+    final supportedReader = supportsVowifiReader(
+      reader,
+      adapter: actionContext.adapter,
+    );
     return <Widget>[
       ActionButton(
         icon: Icons.wifi_calling_3,

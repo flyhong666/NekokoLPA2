@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
@@ -11,6 +10,7 @@ import 'operator_icon_service.dart';
 import 'vowifi_sim_service.dart';
 import '../settings/app_settings.dart';
 import '../utils/imei_codec.dart';
+import '../utils/vowifi_reader_support.dart';
 
 typedef VowifiSmsClientFactory =
     VowifiSmsClient Function({
@@ -118,11 +118,7 @@ class VowifiSmsService extends ChangeNotifier {
     void Function(String line)? onLog,
   }) async {
     final operationEpoch = _beginOperation();
-    if (!adapter.supportsRawApdu) {
-      throw UnsupportedError(
-        'VoWiFi SIM access requires raw basic-channel APDUs; the selected reader/adapter does not support this.',
-      );
-    }
+    requireVowifiReader(adapter, reader);
     return _runBusy(() async {
       onLog?.call('Loading current SIM from ${reader.name}');
       _log.info('Loading current SIM to VoWiFi reader=${reader.name}');
@@ -487,26 +483,11 @@ class VowifiSmsService extends ChangeNotifier {
       VowifiDigestChallenge challenge,
     ) async {
       onLog?.call('SIP digest AKA challenge received');
-      final nonce = challenge.fields['nonce'] ?? '';
-      final decoded = base64.decode(base64.normalize(nonce));
-      if (decoded.length < 32) {
-        throw StateError('Unexpected AKA nonce length');
-      }
-      final aka = await _simService.authenticateIms(
+      return _simService.authenticateDigestChallenge(
         adapter,
         reader,
-        rand: Uint8List.fromList(decoded.sublist(0, 16)),
-        autn: Uint8List.fromList(decoded.sublist(16, 32)),
+        challenge: challenge,
         onLog: onLog,
-      );
-      if (aka.auts.isNotEmpty) {
-        throw StateError('AKA synchronization failure for ${info.iccid}');
-      }
-      return VowifiAkaResponse(
-        res: aka.res,
-        ck: aka.ck,
-        ik: aka.ik,
-        auts: aka.auts,
       );
     }
 

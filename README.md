@@ -1,3 +1,5 @@
+![NekokoLPA2 — cross-platform eSIM manager](docs/assets/readme-banner.png)
+
 # NekokoLPA2
 [![Crowdin](https://badges.crowdin.net/nekokolpa2/localized.svg)](https://crowdin.com/project/nekokolpa2)
 
@@ -10,6 +12,16 @@
 
 
 NekokoLPA2 is a cross-platform eSIM management app for working with local eUICCs, external readers, and remote reader endpoints. It is designed for users who need more control over profile operations, transport choices, and card visibility than a typical carrier app exposes.
+
+[Get started](#get-started) · [Readers and platforms](#platform-support) · [VoWiFi and IMS](#vowifi-and-ims) · [Build from source](#build-from-source) · [Troubleshooting](#troubleshooting)
+
+## Get started
+
+1. Install the app from an [official download channel](#download).
+2. Connect an eUICC reader and enable its connection type in reader settings. For Bluetooth, allow the requested Bluetooth permissions and scan for the advertised reader name.
+3. Select the reader and load its profiles. Use an activation code or QR code to download a profile; enable, rename, or delete profiles from the reader's profile list.
+
+An external reader manages the card connected to that reader. It does not turn an iPhone's internal eSIM into an externally accessible card. Android's internal-card access depends on the available OMAPI, bridge, or modem interface and the card's access rules.
 
 ## Highlights
 
@@ -25,10 +37,8 @@ screen. It requires an external SIM reader, not the phone's internal SIM;
 see [build instructions and limitations](docs/ios-vowifi.txt).
 
 Experimental desktop VoWiFi/SMS is also included on Windows, macOS and Linux.
-Enable VoWiFi in Settings, accept its experimental-feature notice, then use
-"Load current SIM to VoWiFi" on a connected external reader. It is off by
-default and unavailable in 9eSIM-branded builds. This desktop implementation
-provides SMS; the reader-backed iOS calling feature above is a separate path.
+**VoWiFi is disabled on Android and for OMAPI adapters.** Desktop sessions
+require a reader with direct raw basic-channel APDUs; see [setup and restrictions](#vowifi-and-ims).
 
 | Connection Type | Android | iOS | macOS | Linux | Windows | Chrome |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -68,6 +78,67 @@ Translations are managed on [Crowdin](https://crowdin.com/project/nekokolpa2).
 - NekokoLPA2 prefers the external `OTBridge` provider on Android when it is installed.
 - On rooted Android devices, `OTBridge` can expose Telephony/TMAPI access and help bypass OMAPI ARA-M restrictions while keeping NekokoLPA2 itself on the normal app path.
 - `OTBridge` releases are available at: [iebb/OTBridge](https://github.com/iebb/OTBridge/releases)
+- VoWiFi remains disabled on Android, including when an external reader or bridge is available. OMAPI profile management remains available separately.
+
+## VoWiFi and IMS
+
+| Feature | Windows / macOS / Linux | iOS | Android | Browser |
+| --- | --- | --- | --- | --- |
+| Experimental desktop SMS over IMS | Opt-in, external raw-APDU reader | — | Disabled | — |
+| Reader-backed Wi-Fi calling | — | External USB CCID or supported RED BLE reader | Disabled | — |
+| VoWiFi through OMAPI | Disabled | Disabled | Disabled | — |
+
+### Desktop setup
+
+1. Use a non-9eSIM-branded build on Windows, macOS or Linux.
+2. Connect an external SIM/eUICC reader that permits raw APDUs on the basic channel. OMAPI and SE HAL readers are not eligible.
+3. In Settings, enable **VoWiFi** and accept the experimental-feature notice.
+4. On the reader page, choose **Load current SIM to VoWiFi**. The app derives the IMS realm, ePDG address and SMSC from the SIM where available.
+5. Use the VoWiFi tab to view sessions and exchange SMS. Disable VoWiFi or disconnect a session to stop it.
+
+The desktop implementation provides SMS. The iOS Manage screen uses a separate reader-backed calling implementation; see its [build instructions, background limits and verification notes](docs/ios-vowifi.txt).
+
+### Protocol behavior and limits
+
+The desktop IMS client handles AKA resynchronization with AUTS, binary RES values, quoted Digest challenges, `auth`/`auth-int` quality-of-protection negotiation, nonce counts, and supported MD5/SHA-256 digest variants. It correlates final SIP responses to the outstanding transaction, retains the registrar's ordered `Service-Route` values, and honors a valid `423 Min-Expires` response with one bounded retry.
+
+These paths have unit and local SIP-peer regression tests. Carrier provisioning, ePDG access, SIM policy and network behavior still determine whether a real subscription registers and exchanges SMS. This is experimental software, and the project does not claim universal carrier compatibility. See [implementation details, research references and remaining limits](docs/desktop-ims.md).
+
+## Build from source
+
+The public repository includes TYBLE readers, SIM probing and desktop VoWiFi/SMS without a private overlay. Use the Flutter version pinned in [CI](.github/workflows/build.yml), currently **3.47.2**. Android's QRTR transport also requires **Rust 1.89 or later**. Native desktop builds require that platform's Flutter build toolchain.
+
+```sh
+git clone --branch master https://github.com/iebb/NekokoLPA2.git
+cd NekokoLPA2
+flutter pub get
+flutter devices
+flutter run -d macos  # choose an available device from flutter devices
+```
+
+For reader-backed iOS calling, first follow the [source-built Go framework and codec instructions](docs/ios-vowifi.txt). `GM_PSK_URL` can be supplied as a non-secret `--dart-define`; leaving it empty still builds the app, with GM PSKs limited to those already cached.
+
+### Validate a change
+
+```sh
+dart analyze lib test
+flutter test --no-pub
+flutter build web --release --no-pub
+```
+
+Format the Dart files you change. Add user-facing strings only to `l10n/app_en.arb`, then run `flutter gen-l10n`; Crowdin owns the translated ARB files. When adding a plugin, regenerate its registry with `dart run scripts/generate_plugin_registry.dart`. Maintainers working with a private overlay should use `--public` for the committed registry.
+
+## Troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| Bluetooth reader is missing | Enable Bluetooth, allow the platform permissions, enable that reader type and scan again. Linux has no BLE transport in this app. |
+| B0 Plus is detected as another reader | Scan its advertised name. Eight-digit `9eSIM` names use TYBLE; six-character suffixes use NineESIM. |
+| An Android card refuses OMAPI | Check its access rules or use a supported bridge/reader. VoWiFi is unavailable through OMAPI. |
+| The VoWiFi setting is absent | Desktop VoWiFi is unavailable on Android, iOS and 9eSIM-branded builds. iOS calling has its own Manage entry. |
+| IMS registration or SMS fails | Check reader eligibility, SIM carrier provisioning, the reported SIP status and the [IMS limitations](docs/desktop-ims.md). A passing build does not establish carrier support. |
+
+When reporting a problem, include the app version, operating system, reader model and a redacted error. Remove subscriber identities, activation codes, phone numbers, raw APDUs and authentication material from shared logs.
 
 ## Download
 
