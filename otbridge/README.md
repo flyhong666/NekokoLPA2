@@ -1,112 +1,24 @@
 # OTBridge
 
-`OTBridge` contains both:
+The small privileged OMAPI/TMAPI helper for NekokoLPA. Development and releases now live inside **NekokoLPA2**. See [source provenance](UPSTREAM.md), the original [MIT license](LICENSE), and the [comparison with the full rooted app](../docs/android-root.md).
 
-- the Android source for `ee.nekoko.nbridge`
-- the Magisk/KernelSU module project that installs it as a privileged app
+The helper keeps package `ee.nekoko.nbridge` and provider `content://ee.nekoko.nbridge.provider`. It exposes `listSlots`, `listActiveConnections`, `connectLogicalChannel`, `transmitLogical`, `transmitBasic` and `closeLogicalChannel`. OMAPI slots use names such as `O-SIM1`; Telephony slots use `T-SIM1` or multi-port `T-SIM1p1`.
 
-The app exposes OMAPI and TMAPI through:
+## Install
 
-- `content://ee.nekoko.nbridge.provider`
+Use the `otbridge-magisk-kernelsu-v*.zip` asset from [NekokoLPA2 releases](https://github.com/iebb/NekokoLPA2/releases), install it through Magisk/KernelSU and reboot. The normal NekokoLPA app can then use the helper. An APK installed normally does not acquire privileged permissions.
 
-## Android App
+The optional LSPosed hook and its access-control scope are explained in [the Android root guide](../docs/android-root.md). Android VoWiFi remains disabled.
 
-Package:
+## Build
 
-- `ee.nekoko.nbridge`
+From this directory, with Java 17 and the Android SDK installed:
 
-Provider methods:
-
-- `listSlots`
-- `listActiveConnections`
-- `connectLogicalChannel`
-- `transmitLogical`
-- `transmitBasic`
-- `closeLogicalChannel`
-
-Slot display names:
-
-- OMAPI: `O-SIM1`, `O-SIM2`
-- TMAPI: `T-SIM1`, `T-SIM2`
-- multi-port TMAPI: `T-SIM1p1`, `T-SIM2p1`
-
-## Build The App
-
-Debug APK:
-
-```bash
-./gradlew :app:assembleDebug
-```
-
-Release APK:
-
-```bash
+```sh
 ./gradlew :app:assembleRelease
-```
-
-Default release output:
-
-```text
-app/build/outputs/apk/release/app-release.apk
-```
-
-## Build The Module
-
-Build from the local release APK:
-
-```bash
 ./scripts/build.sh
 ```
 
-Build from an explicit APK:
+The APK is `app/build/outputs/apk/release/app-release.apk`; the module is `build/otbridge-magisk-kernelsu-v<helper-version>.zip`. The helper version is independent of the Flutter app version. Release builds use NekokoLPA2's already-public community signing key, so clean builds retain a stable certificate. Older installations signed by a different key may need removal before reinstalling.
 
-```bash
-./scripts/build.sh --apk /absolute/path/to/NBridge.apk
-```
-
-Optional version overrides:
-
-```bash
-./scripts/build.sh --version v1.1.0 --version-code 2
-```
-
-Output:
-
-```text
-build/otbridge-magisk-kernelsu-v1.1.0.zip
-```
-
-## GitHub Actions
-
-GitHub Actions builds both artifacts automatically on:
-
-- pushes to `master` or `main`
-- pull requests
-- manual workflow dispatch
-
-Uploaded workflow artifacts:
-
-- `otbridge-apk`
-- `otbridge-magisk-kernelsu`
-
-For non-PR runs, the workflow also updates the GitHub prerelease:
-
-- tag: `v1.1.0`
-- title: `OTBridge v1.1.0`
-
-Release assets:
-
-- `app-release.apk`
-- `otbridge-magisk-kernelsu-v1.1.0.zip`
-
-The module mounts `ee.nekoko.nbridge` into `/system/priv-app/ee.nekoko.nbridge/NBridge.apk` and installs the privileged permission XML.
-
-## Source Layout
-
-- `app/`: Android bridge app source
-- `module_template/`: Magisk/KernelSU module template
-- `scripts/build.sh`: module packaging script
-
-## License
-
-MIT
+The root [Build NekokoLPA2 workflow](../.github/workflows/build.yml) builds both artifacts, uploads them for inspection and attaches them to app releases. `android_tools_only` runs just the rooted app and helper builds. The old standalone repository remains available for historical source/releases.

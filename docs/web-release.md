@@ -1,23 +1,27 @@
 # Publishing the web app
 
-The production web app is hosted at [iebb.github.io/NekokoLPA2](https://iebb.github.io/NekokoLPA2/). The separate `nekokolpa` Cloudflare Pages project is the landing page.
+The production app is [web.lpa.ee](https://web.lpa.ee), served by the **weblpa** Cloudflare Pages project in the **KosmoNeko** account (`a14f6861a9473561d8ca8d164c9dba74`). Its Pages production branch is `release`; the separate landing-page project is not the app deployment target.
 
-The [Publish web release workflow](../.github/workflows/publish_web.yml) deploys published stable app releases. It checks out the release tag's exact commit, builds with Flutter 3.47.2 and the GitHub Pages base path, verifies `version.json`, and uploads/deploys the static site. It needs only the repository's `GITHUB_TOKEN` and Pages/OIDC permissions; no Cloudflare token, private overlay or signing material is used.
+The [Publish web release workflow](../.github/workflows/publish_web.yml) selects a published stable app tag, checks out its exact commit, builds with Flutter 3.47.2 and root base path `/`, verifies `version.json`, then deploys with pinned Wrangler to `weblpa`'s `release` branch. App code comes entirely from the public release, without a private overlay or signing material.
 
-Two automatic events cover the release paths:
+## Automatic events
 
 - `release: published` handles releases created by a maintainer or a personal access token.
-- Successful completion of **Build NekokoLPA2** on `release` covers releases created with `GITHUB_TOKEN`, which do not trigger a second release-event workflow. The completed build and release tag must identify the same commit.
+- Successful completion of **Build NekokoLPA2** on `release` covers releases created with `GITHUB_TOKEN`, which do not trigger another release-event workflow. The completed build and tag must identify the same commit.
 
 Automatic runs deploy only the latest stable release. Delayed old events, drafts, prereleases and builds from forks cannot replace production. A manual run can select an older published stable tag for an intentional rollback.
 
-To deploy or retry a release:
+## Deployment credential
+
+The repository secret `CLOUDFLARE_PAGES_API_TOKEN` supplies a deployment token with **Account → Cloudflare Pages → Edit**, restricted to the KosmoNeko account. The account ID and project/branch names are not secrets and are fixed in the workflow. Token values belong only in GitHub's encrypted secret storage, never source files, logs or workflow inputs.
+
+Cloudflare scopes this Pages permission by account. The token does not need DNS editing, Workers administration, signing keys or the private Kasutera repository. The existing `web.lpa.ee` custom domain and DNS stay attached to the same project.
+
+## Deploy or retry
 
 ```sh
 gh workflow run publish_web.yml --repo iebb/NekokoLPA2 --ref master \
   -f 'release_tag=v2.4.0+600'
 ```
 
-Leaving `release_tag` empty selects the latest stable release. The Actions run records the Pages deployment URL. The app's `version.json` exposes the deployed version/build for verification.
-
-The repository's Pages source must be **GitHub Actions**. To use `web.lpa.ee`, configure that custom domain in GitHub Pages and point its DNS at `iebb.github.io`; the workflow automatically uses the resulting root base path on its next deployment. DNS must be changed in the account that owns `lpa.ee`. The legacy local publisher's `weblpa` Cloudflare target was not present in the connected accounts during the 2026-10-28 investigation.
+Leaving `release_tag` empty selects the latest stable release. Kasutera's `./publish_web.sh [tag]` starts the same workflow. Check `https://web.lpa.ee/version.json` for the deployed version/build; the Actions run also records the Cloudflare deployment URL.

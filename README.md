@@ -77,7 +77,8 @@ Translations are managed on [Crowdin](https://crowdin.com/project/nekokolpa2).
 
 - NekokoLPA2 prefers the external `OTBridge` provider on Android when it is installed.
 - On rooted Android devices, `OTBridge` can expose Telephony/TMAPI access and help bypass OMAPI ARA-M restrictions while keeping NekokoLPA2 itself on the normal app path.
-- `OTBridge` releases are available at: [iebb/OTBridge](https://github.com/iebb/OTBridge/releases)
+- OTBridge source and builds now live in this repository: [source](otbridge/), [release downloads](https://github.com/iebb/NekokoLPA2/releases).
+- The separate full rooted app/module is also maintained. [Compare OTBridge and the rooted app, with installation/build instructions](docs/android-root.md).
 - VoWiFi remains disabled on Android, including when an external reader or bridge is available. OMAPI profile management remains available separately.
 
 ## VoWiFi and IMS
@@ -146,7 +147,7 @@ When reporting a problem, include the app version, operating system, reader mode
 - [![Get it on Google Play](https://img.shields.io/badge/Google%20Play-Download-34A853?logo=googleplay&logoColor=white&style=for-the-badge)](https://play.google.com/store/apps/details?id=ee.nekoko.nlpa)
 - **GitHub Releases**: [iebb/NekokoLPA2 releases](https://github.com/iebb/NekokoLPA2/releases)
 - **TestFlight**: [Join TestFlight](https://testflight.apple.com/join/bP38fzC4)
-- **Web**: [Open the web app](https://iebb.github.io/NekokoLPA2/) — [release deployment guide](docs/web-release.md)
+- **Web**: [web.lpa.ee](https://web.lpa.ee) — [release deployment guide](docs/web-release.md)
 
 ## Star History
 

@@ -11,8 +11,18 @@ android {
         applicationId = "ee.nekoko.nbridge"
         minSdk = 28
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.2.0"
+        versionCode = 4
+        versionName = "1.2.1"
+    }
+
+    // The already-public community key gives repeatable, upgradeable builds.
+    signingConfigs {
+        create("community") {
+            storeFile = rootProject.file("../android/app/community.jks")
+            storePassword = "CommunityKey"
+            keyAlias = "communitykey"
+            keyPassword = "CommunityKey"
+        }
     }
 
     buildTypes {
@@ -22,7 +32,7 @@ android {
         release {
             isMinifyEnabled = false
             isShrinkResources = false
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("community")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

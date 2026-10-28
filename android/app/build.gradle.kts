@@ -92,6 +92,15 @@ android {
             }
         }
 
+        create("privileged") {
+            dimension = "version"
+            applicationId = "ee.nekoko.nlpa2"
+            manifestPlaceholders["appName"] = "NekokoLPA 2 Rooted"
+            if (hasSigningValues("community")) {
+                signingConfig = signingConfigs.getByName("community")
+            }
+        }
+
     }
 
     defaultConfig {
