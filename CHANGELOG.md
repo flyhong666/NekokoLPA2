@@ -9,6 +9,8 @@ All notable changes to NekokoLPA2 will be documented in this file.
 - Published experimental desktop VoWiFi/SMS for Windows, macOS and Linux, with explicit opt-in and the existing 9eSIM-build restriction.
 - Published plain-SIM identity and operator probing for readers that support raw APDUs.
 - Added eSTK.me slot selection, Android SE HAL readers and profile database import/export.
+- Moved OTBridge source and APK/Magisk/KernelSU module builds into NekokoLPA2.
+- Retained full rooted Android APK/module builds alongside normal and helper-based installations.
 
 ### Fixed
 - Fixed 9eSIM B0 Plus detection for eight-digit advertised names and authentication using the advertised device UID.
