@@ -69,7 +69,7 @@ def plan(release, channel, certificates, migrate_standard_desktop=False):
             for variant, tail in [('std', 'AppImage'), ('std-appimage', 'AppImage'), ('std-tgz', 'tar.gz')]:
                 add('linux', variant, f'{prefix}-linux-x64.{tail}')
             for entry in result[start:]:
-                entry['data']['changelog'] = ('NekokoLPA desktop now uses the Open distribution. Core LPA, readers and experimental IMS/SMS are included. Private eSIM.cc, eSIM.gg and 3HK status extras are not included.')
+                entry['data']['changelog'] = ('NekokoLPA desktop now uses the Open distribution. Core LPA, readers and experimental IMS/SMS are included. Private provider status add-ons are omitted; see the release notes for the included public integrations.')
     elif channel == 'standard':
         add('windows', 'std', f'ee.nekoko.nlpa2.windows-{suffix}-setup.exe')
         for variant, tail in [('std', 'AppImage'), ('std-appimage', 'AppImage'), ('std-tgz', 'tar.gz')]:
