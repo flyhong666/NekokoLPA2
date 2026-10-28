@@ -77,7 +77,9 @@ jobs:
         run: |
           args=(--release --flavor "$BUILD_FLAVOR" --target lib/main.dart)
           if [ "$BUILD_FLAVOR" = privileged ]; then
-            args+=(--target-platform android-arm64 --dart-define=PRIVILEGED_BUILD=true)
+            args+=(--target-platform android-arm64 --dart-define=PRIVILEGED_BUILD=true --dart-define=APP_VARIANT=open-rooted)
+          else
+            args+=(--dart-define=APP_VARIANT=open)
           fi
           flutter build apk "${args[@]}" --dart-define=GM_PSK_URL="$GM_PSK_URL"
       - name: Package Android artifacts
@@ -145,7 +147,7 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - run: flutter pub get
-      - run: flutter build web --release --dart-define=GM_PSK_URL=${{ env.GM_PSK_URL }}
+      - run: flutter build web --release --dart-define=APP_VARIANT=open --dart-define=GM_PSK_URL=${{ env.GM_PSK_URL }}
       - name: Package web build
         env:
           VERSION_CLEAN: ${{ needs.meta.outputs.version_clean }}
@@ -177,7 +179,7 @@ jobs:
           sudo wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -O /usr/local/bin/appimagetool
           sudo chmod +x /usr/local/bin/appimagetool
       - run: flutter pub get
-      - run: flutter build linux --release --dart-define=GM_PSK_URL=${{ env.GM_PSK_URL }}
+      - run: flutter build linux --release --dart-define=APP_VARIANT=open --dart-define=GM_PSK_URL=${{ env.GM_PSK_URL }}
       - name: Package tar.gz + AppImage
         env:
           VERSION_CLEAN: ${{ needs.meta.outputs.version_clean }}
@@ -235,7 +237,7 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - run: flutter pub get
-      - run: flutter build windows --release --dart-define=GM_PSK_URL=${{ env.GM_PSK_URL }}
+      - run: flutter build windows --release --dart-define=APP_VARIANT=open --dart-define=GM_PSK_URL=${{ env.GM_PSK_URL }}
       - name: Stage release tree
         shell: pwsh
         run: |

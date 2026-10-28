@@ -47,8 +47,10 @@ Windows currently uses `%LOCALAPPDATA%/NekokoLPA2/databases/nekokolpa2.db` in bo
 
 ## Update delivery
 
-The updater implementation is shared, but Android selects updates by detected variant and certificate; Windows/Linux selection can fall back to the `std` feed. The public flavor asset says `store`, and the public workflow does not override `APP_VARIANT`, while the private Android scripts explicitly select their variants. The live feed checked on 2026-10-28 contains Android `std`, `multi`, `sekiu`, `esim9` and `privileged` entries at build 600, with no `store` or dedicated Open entry. Consequently, the current public Android builds do not match a published update channel; use GitHub releases for their updates.
+The updater and release publisher are maintained in the public repository. Public builds explicitly use the `open` channel; the full public rooted build uses `open-rooted`. Android metadata is verified against the released APK signing certificates. Open desktop clients never fall back to a vendor feed. Normal and rooted public APKs also cannot match each other's channel.
 
-The same feed still advertises Windows `std` build 588 (2.2.6) and Linux `std` build 589 (2.3.0), although Open build 600 artifacts are available on GitHub. Windows/Linux Open builds can consult that shared standard feed, so its existence does not establish a separate Open channel or current desktop delivery. The in-app updater does not run on macOS/iOS; Store/TestFlight distribution is separate.
+The first 2.4.0+600 public artifacts embedded the legacy `store` flavor. The feed retains compatibility entries for those clients: Windows/Linux point to public artifacts, while Android links to the release chooser because both the old normal and rooted APKs used the same `store` variant and certificate. Choose the matching **Open** APK or rooted module there. New builds carry distinct channel identities. See [update delivery](update-feeds.md).
+
+The in-app updater runs on Android, Windows and Linux. Store/TestFlight delivery on macOS/iOS is separate.
 
 The private overlay also contains signing credentials and release infrastructure. These are build/deployment material, not additional public reader or IMS features. The public [plugin registry](../lib/plugins/build_plugin_registry.dart), [capability policy](../lib/settings/build_capabilities.dart) and [build workflow](../.github/workflows/build.yml) show what Open includes.

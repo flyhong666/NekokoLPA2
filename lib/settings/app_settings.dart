@@ -102,6 +102,13 @@ class AppSettings extends ChangeNotifier {
     );
     if (envVariant.isNotEmpty) return envVariant;
 
+    // Public Android identity wins over stale rebranding assets.
+    if (_packageName.endsWith('.open')) return 'open';
+    if (kIsPrivileged &&
+        (_flavorFileVariant == 'open' || _flavorFileVariant == 'store')) {
+      return 'open-rooted';
+    }
+
     // 2. Check if flavor.json defines a variant
     if (_flavorFileVariant.isNotEmpty) return _flavorFileVariant;
 

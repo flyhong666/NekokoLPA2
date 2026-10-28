@@ -5,6 +5,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../settings/app_settings.dart';
 import '../utils/platform_adapter.dart';
 import 'package:logging/logging.dart';
+import 'update_feed.dart';
 
 class UpdateInfo {
   final String version;
@@ -89,98 +90,23 @@ class UpdateService {
       return null;
     }
 
-    final currentHashes = await _getAndroidSignatures();
-    final currentBuild = await _getCurrentBuild();
-
-    UpdateInfo? bestMatch;
-    int maxBuild = currentBuild;
-
-    // Handle new format (flat dictionary with keys "variant-sigs")
-    // or nested format (dict with variant keys pointing to list or dict)
-
-    // First, flatten the candidates list from the config structure
-    final candidates = <Map<String, dynamic>>[];
-
-    osConfig.forEach((key, value) {
-      // New format: key is "variant-sig1-sig2..."
-      if (key.toString().startsWith('$variant-') || key.toString() == variant) {
-        if (value is Map) {
-          candidates.add(Map<String, dynamic>.from(value));
-        } else if (value is List) {
-          // Old format: key is just variant, value is list of releases
-          for (final item in value) {
-            if (item is Map) candidates.add(Map<String, dynamic>.from(item));
-          }
-        }
-      }
-    });
-
-    for (final release in candidates) {
-      final build = release['build'] as int? ?? 0;
-
-      // If we already found a higher build that matches our signature, skipping lower ones
-      if (build <= maxBuild) continue;
-
-      // Match signatures: release must have matching signature or no signatures restricted
-      final List<dynamic>? allowedSignatures = release['signatures'];
-      bool sigMatch = false;
-
-      if (allowedSignatures == null || allowedSignatures.isEmpty) {
-        // Empty signature list in config means no restriction
-        sigMatch = true;
-      } else {
-        for (final sig in currentHashes) {
-          if (allowedSignatures.any(
-            (s) => s.toString().toUpperCase() == sig.toUpperCase(),
-          )) {
-            sigMatch = true;
-            break;
-          }
-        }
-      }
-
-      if (sigMatch) {
-        maxBuild = build;
-        bestMatch = _mapToUpdateInfo(release);
-        _log.info(
-          'Found candidate update: v${bestMatch.version} b${bestMatch.build} for variant $variant',
-        );
-      }
-    }
-
-    if (bestMatch == null) {
-      _log.info(
-        'No signature-matching updates found for variant $variant higher than $currentBuild',
-      );
-    }
-
-    return bestMatch;
+    final selected = UpdateFeed.selectAndroid(
+      osConfig,
+      variant: variant,
+      signatures: await _getAndroidSignatures(),
+      currentBuild: await _getCurrentBuild(),
+    );
+    return selected == null ? null : _mapToUpdateInfo(selected);
   }
 
   Future<UpdateInfo?> _checkGenericUpdate(dynamic osConfig) async {
     if (osConfig is! Map) return null;
-
-    // Try to find variant-specific config, then "std", then fallback to direct
-    final variant = AppSettings().variant;
-    dynamic targetConfig;
-
-    if (variant.isNotEmpty && osConfig.containsKey(variant)) {
-      targetConfig = osConfig[variant];
-    } else if (osConfig.containsKey('std')) {
-      targetConfig = osConfig['std'];
-    } else {
-      targetConfig = osConfig;
-    }
-
-    if (targetConfig is! Map) return null;
-
-    final latestBuild = targetConfig['build'] as int? ?? 0;
-    final currentBuild = await _getCurrentBuild();
-
-    if (latestBuild > currentBuild) {
-      return _mapToUpdateInfo(targetConfig);
-    }
-    return null;
+    final selected = UpdateFeed.selectDesktop(
+      osConfig,
+      variant: AppSettings().variant,
+      currentBuild: await _getCurrentBuild(),
+    );
+    return selected == null ? null : _mapToUpdateInfo(selected);
   }
 
   UpdateInfo _mapToUpdateInfo(dynamic data) {
