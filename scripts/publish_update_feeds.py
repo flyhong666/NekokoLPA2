@@ -21,7 +21,7 @@ def api(path):
     return json.loads(result.stdout)
 
 
-def plan(release, channel, certificates):
+def plan(release, channel, certificates, migrate_standard_desktop=False):
     tag = release['tag_name']
     if release['draft'] or release['prerelease'] or re.fullmatch(r'v\d+\.\d+\.\d+\+\d+', tag) is None:
         raise ValueError('A published stable app release is required')
@@ -63,6 +63,13 @@ def plan(release, channel, certificates):
             add('windows', variant, f'{prefix}-{tail}')
         for variant, tail in [('open', 'AppImage'), ('open-appimage', 'AppImage'), ('open-tgz', 'tar.gz'), ('store', 'AppImage')]:
             add('linux', variant, f'{prefix}-linux-x64.{tail}')
+        if migrate_standard_desktop:
+            start = len(result)
+            add('windows', 'std', f'{prefix}-windows-setup.exe')
+            for variant, tail in [('std', 'AppImage'), ('std-appimage', 'AppImage'), ('std-tgz', 'tar.gz')]:
+                add('linux', variant, f'{prefix}-linux-x64.{tail}')
+            for entry in result[start:]:
+                entry['data']['changelog'] = ('NekokoLPA desktop now uses the Open distribution. Core LPA, readers and experimental IMS/SMS are included. Private eSIM.cc, eSIM.gg and 3HK status extras are not included.')
     elif channel == 'standard':
         add('windows', 'std', f'ee.nekoko.nlpa2.windows-{suffix}-setup.exe')
         for variant, tail in [('std', 'AppImage'), ('std-appimage', 'AppImage'), ('std-tgz', 'tar.gz')]:
@@ -77,6 +84,7 @@ def main():
     parser.add_argument('--release-tag', default='')
     parser.add_argument('--channel', choices=['open', 'standard'], default='open')
     parser.add_argument('--dry-run', action='store_true')
+    parser.add_argument('--migrate-standard-desktop', action='store_true')
     args = parser.parse_args()
     latest = api('releases/latest')
     tag = args.release_tag or latest['tag_name']
@@ -93,7 +101,7 @@ def main():
                 subprocess.run(['gh', 'release', 'download', tag, '--repo', REPOSITORY,
                                 '--pattern', filename, '--dir', tmp], check=True)
                 certificates[filename] = get_apk_signature(Path(tmp) / filename)
-        payloads = plan(release, args.channel, certificates)
+        payloads = plan(release, args.channel, certificates, args.migrate_standard_desktop)
     with urlopen(Request(FEED, headers={'User-Agent': 'Mozilla/5.0'}), timeout=30) as response:
         current = json.load(response)
     for payload in payloads:

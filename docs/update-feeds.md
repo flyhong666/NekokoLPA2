@@ -28,6 +28,8 @@ Both old public Android flavors embedded `store` and used the same signing certi
 3. Writes the correct artifact URLs, sizes, version and build to each channel.
 4. Refuses to overwrite a newer feed build and fails CI if a write is rejected.
 
+A manual dispatch can explicitly enable `migrate_standard_desktop` to offer Open artifacts to legacy Windows/Linux `std` users. Its feed note explains that the three private provider status extras are omitted. This migration is separate from maintaining the Open channels, so publishing Open does not silently replace a vendor distribution.
+
 `UPDATE_WORKER_URL` and `UPDATE_WORKER_KEY` are encrypted GitHub Actions secrets. They are never committed to this repository. Authentication is sent in a header, not a URL query string. The shared [metadata writer](../scripts/update_config_json.py) also supports vendor release callers, which keep their credentials and flavor settings separately.
 
 The public [feed row mapper](../tools/update_feed_entry.ts) preserves direct artifact downloads separately from release-page links. The deployment wrapper keeps only its D1 binding/cache infrastructure outside this repository.

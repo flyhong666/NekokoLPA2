@@ -33,6 +33,15 @@ class FeedPublisherTest(unittest.TestCase):
         self.assertTrue(rooted['data']['download_url'].endswith('-rooted-arm64-v8a.apk'))
         self.assertFalse(any(p['identifier'] == 'std' for p in payloads))
 
+    def test_explicit_desktop_migration_points_standard_users_to_open(self):
+        payloads = feeds.plan(self.release, 'open', self.certs, migrate_standard_desktop=True)
+        legacy = [p for p in payloads if p['identifier'] in ['std', 'std-appimage', 'std-tgz']]
+        self.assertEqual(len(legacy), 4)
+        for entry in legacy:
+            self.assertEqual(entry['data']['build'], 600)
+            self.assertIn('ee.nekoko.nlpa2.open-', entry['data']['download_url'])
+            self.assertIn('not included', entry['data']['changelog'])
+
     def test_legacy_store_android_uses_a_chooser_not_the_wrong_apk(self):
         payloads = feeds.plan(self.release, 'open', self.certs)
         legacy = next(p for p in payloads if p['platform'] == 'android' and p['identifier'].startswith('store-'))
