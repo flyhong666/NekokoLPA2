@@ -5,12 +5,13 @@ All notable changes to NekokoLPA2 will be documented in this file.
 ## [2.4.0+600] - 2026-10-28
 
 ### Added
-- Published TYBLE reader support, including eight-digit 9eSIM B0 Plus names and authentication using the advertised device UID.
+- Published TYBLE reader support.
 - Published experimental desktop VoWiFi/SMS for Windows, macOS and Linux, with explicit opt-in and the existing 9eSIM-build restriction.
 - Published plain-SIM identity and operator probing for readers that support raw APDUs.
 - Added eSTK.me slot selection, Android SE HAL readers and profile database import/export.
 
 ### Fixed
+- Fixed 9eSIM B0 Plus detection for eight-digit advertised names and authentication using the advertised device UID.
 - Enforced the Android and OMAPI VoWiFi restrictions at reader and service entry points.
 - Improved desktop IMS authentication with quoted Digest challenges, MCC-independent qop negotiation, AUTS resynchronization, binary RES handling and nonce counts.
 - Matched SIP final responses to their transactions, retained registration service routes, honored Min-Expires and serialized overlapping socket writes.

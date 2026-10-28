@@ -134,7 +134,6 @@ Format the Dart files you change. Add user-facing strings only to `l10n/app_en.a
 | Symptom | Check |
 | --- | --- |
 | Bluetooth reader is missing | Enable Bluetooth, allow the platform permissions, enable that reader type and scan again. Linux has no BLE transport in this app. |
-| B0 Plus is detected as another reader | Scan its advertised name. Eight-digit `9eSIM` names use TYBLE; six-character suffixes use NineESIM. |
 | An Android card refuses OMAPI | Check its access rules or use a supported bridge/reader. VoWiFi is unavailable through OMAPI. |
 | The VoWiFi setting is absent | Desktop VoWiFi is unavailable on Android, iOS and 9eSIM-branded builds. iOS calling has its own Manage entry. |
 | IMS registration or SMS fails | Check reader eligibility, SIM carrier provisioning, the reported SIP status and the [IMS limitations](docs/desktop-ims.md). A passing build does not establish carrier support. |

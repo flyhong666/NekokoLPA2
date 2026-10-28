@@ -114,6 +114,9 @@ jobs:
           java-version: '17'
           cache: gradle
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
       - name: Build and package the bridge
         working-directory: otbridge
         run: |
