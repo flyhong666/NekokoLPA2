@@ -2,7 +2,7 @@
 
 All notable changes to NekokoLPA2 will be documented in this file.
 
-## Unreleased
+## [2.4.1+601] - 2026-10-29
 
 ### Performance
 - Initialize tabs on first visit and pause inactive Flutter animations while retaining page state.
@@ -15,6 +15,10 @@ All notable changes to NekokoLPA2 will be documented in this file.
 - Clear the OMAPI crash guard only at a verified channel-free idle checkpoint, preventing normal app restarts from hiding built-in readers. Actual failed channel cleanup remains reboot-required.
 - Wait for asynchronous OMAPI service connection, refresh discovery when it connects, honor forced reader refresh and show reboot-required discovery errors instead of an empty-reader prompt.
 - Keep built-in reader defaults available if an installed OTBridge provider fails discovery.
+
+### Upgrade notes
+- If 2.4.0 already left OMAPI blocked with a reboot-required safety marker, install this update and restart the device once. Clearing app data is not required.
+- Scrolling work has been reduced and regression-tested; physical-device frame timing has not yet been measured.
 
 ## [2.4.0+600] - 2026-10-28
 

@@ -21,7 +21,7 @@ Current source/build comparison, 2026-10-28. **Open** means an app built entirel
 
 Open includes the eSIM.cc and eSIM.gg integrations. eSIM.gg queries the provider status service for matching profiles and caches returned number/balance/package information. Only the 3HK status add-on remains private; basic 3HK profile management still uses the shared LPA. BeeSIM, eSTK and GM remain public.
 
-This compares current source. The original public 2.4.0+600 APKs predate the eSIM.cc/eSIM.gg promotion and the OMAPI restart fix; those changes require a newer app build.
+This compares current source. The original public 2.4.0+600 APKs predate the eSIM.cc/eSIM.gg promotion and the OMAPI restart fix; both are included from 2.4.1+601.
 
 Windows, macOS and Linux use the same core reader/IMS code in both distributions. OS limits still apply equally: for example, the app has no Linux BLE transport. Desktop IMS provides experimental SMS; the separate iOS implementation provides reader-backed calling. The 9eSIM-branded variant disables desktop IMS even though Open and standard builds include it.
 
