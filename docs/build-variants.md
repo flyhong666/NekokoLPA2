@@ -43,6 +43,10 @@ The current private Android scripts pass `ENABLE_ZXING=false`, while public buil
 
 Normal Open and standard Android builds have different package IDs and separate local app data. The rooted builds share the legacy rooted package ID; switching certificates can require uninstall/reinstallation. Profiles themselves reside on the connected eUICC, independently of the app's notes/settings/database.
 
-Windows currently uses `%LOCALAPPDATA%/NekokoLPA2/databases/nekokolpa2.db` in both builds. Different download filenames do not isolate that database. Other platform names, bundle IDs and store/signing arrangements vary with the platform project/flavor; avoid inferring app-data isolation from an `.open` filename alone. Database import/export is available in the shared app.
+Windows currently uses `%LOCALAPPDATA%/NekokoLPA2/databases/nekokolpa2.db` in both builds. The installers have different installer IDs but use the same default `%ProgramFiles%/NekokoLPA2` directory, so accepting both defaults can replace the other build's files. Different download filenames do not isolate the database. Other platform names, bundle IDs and store/signing arrangements vary with the platform project/flavor; avoid inferring app-data isolation from an `.open` filename alone. Database import/export is available in the shared app.
+
+## Update delivery
+
+The updater implementation is shared, but Android selects updates by detected variant and certificate; desktop selection can fall back to the `std` feed. The current public flavor asset says `store`, while the private Android scripts explicitly select their variants. A dedicated Open update channel is therefore not established simply by naming the download `.open`. The live update-feed response could not be inspected during this comparison because it returned HTTP 403; this comparison does not assert automatic-update parity. Store/TestFlight distribution is also separate from GitHub APK/desktop downloads.
 
 The private overlay also contains signing credentials and release infrastructure. These are build/deployment material, not additional public reader or IMS features. The public [plugin registry](../lib/plugins/build_plugin_registry.dart), [capability policy](../lib/settings/build_capabilities.dart) and [build workflow](../.github/workflows/build.yml) show what Open includes.
