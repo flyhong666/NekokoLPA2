@@ -92,12 +92,9 @@ The path-limited ios-vowifi workflow adds protocol, Darwin/Flutter/unsigned-iOS
 and Web checks without signing/deployment secrets. Existing release workflows
 are not replaced. CI/build results do not establish physical interoperability.
 
-At the pinned upstream base, full analysis with Flutter 3.47.2 reports
-unawaited_return_in_try_block at lib/pages/notification_history_page.dart:58.
-That file and analysis_options.yaml remain byte-for-byte upstream. It is not
-silently fixed or globally suppressed by this feature. The new workflow runs
-strict analysis on all feature/modified host boundaries and the complete test
-suite; full-analysis output must still be recorded separately. Web JS release
+The release checks run full application analysis and the complete Flutter test
+suite. The ios-vowifi workflow also runs strict analysis on the feature and
+modified host boundaries. Web JS release
 builds, while the upstream flutter_rust_bridge dependency's Wasm dry-run warns;
 that does not establish WebAssembly support.
 
