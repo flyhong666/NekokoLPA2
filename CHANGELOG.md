@@ -4,6 +4,10 @@ All notable changes to NekokoLPA2 will be documented in this file.
 
 ## Unreleased
 
+### Performance
+- Initialize tabs on first visit and pause inactive Flutter animations while retaining page state.
+- Isolate settings-row repaint work, cache profile-size/icon misses, and index/cache size predictions with reference parsing outside the mobile UI isolate.
+
 ### Added
 - Published eSIM.cc rewards/portal integration and eSIM.gg number, balance and package status integration.
 

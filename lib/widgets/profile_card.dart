@@ -708,6 +708,24 @@ class ProfileIcon extends StatelessWidget {
           );
         }
 
+        if (OperatorIconService().hasCachedIcon(
+          mcc: profile.mcc!,
+          mnc: profile.mnc!,
+          gid1: profile.gid1,
+          gid2: profile.gid2,
+        )) {
+          return _buildFallbackProfileIcon(
+            theme,
+            isCompact,
+            loadProfileIcons,
+            hasProfileIcon,
+            size,
+            margin,
+            radius,
+            useNekokoIcons,
+          );
+        }
+
         return FutureBuilder<String?>(
           future: OperatorIconService().getIcon(
             mcc: profile.mcc!,
@@ -911,43 +929,39 @@ class ProfileSizeBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Try Cache
-    final cachedSize = DatabaseService().getProfileSizeSync(eid, profile.iccid);
-    if (cachedSize != null && cachedSize > 0) {
-      return _buildSizeBadge(cachedSize, theme);
+    final database = DatabaseService();
+    if (database.hasCachedProfileSize(eid, profile.iccid)) {
+      return _buildSizeOrPrediction(
+        context,
+        database.getProfileSizeSync(eid, profile.iccid),
+      );
     }
-
-    // 2. Try Async DB
     return FutureBuilder<int?>(
-      future: DatabaseService().getProfileSize(eid, profile.iccid),
-      builder: (context, snapshot) {
-        if (snapshot.hasData && snapshot.data != null && snapshot.data! > 0) {
-          return _buildSizeBadge(snapshot.data!, theme);
-        }
+      future: database.getProfileSize(eid, profile.iccid),
+      builder: (context, snapshot) =>
+          _buildSizeOrPrediction(context, snapshot.data),
+    );
+  }
 
-        // 3. Try Prediction (if enabled)
-        final settings = AppSettings();
-        if (settings.estimateProfileSize) {
-          ProfileSizePredictionService().ensureLoaded();
-
-          String? plmn;
-          if (profile.mcc != null && profile.mnc != null) {
-            plmn = "${profile.mcc}${profile.mnc}";
-          }
-
-          final predicted = ProfileSizePredictionService().predictSize(
-            eid: eid,
-            smdpAddress: profile.smdpAddress,
-            plmn: plmn,
-            serviceProviderName: profile.serviceProviderName,
-          );
-
-          if (predicted != null && predicted > 0) {
-            return _buildEstimatedSizeBadge(predicted, theme);
-          }
-        }
-
-        return const SizedBox.shrink();
+  Widget _buildSizeOrPrediction(BuildContext context, int? size) {
+    if (size != null && size > 0) return _buildSizeBadge(size, theme);
+    if (!AppSettings().estimateProfileSize) return const SizedBox.shrink();
+    final predictions = ProfileSizePredictionService();
+    predictions.ensureLoaded();
+    return ListenableBuilder(
+      listenable: predictions,
+      builder: (context, _) {
+        final predicted = predictions.predictSize(
+          eid: eid,
+          smdpAddress: profile.smdpAddress,
+          plmn: profile.mcc != null && profile.mnc != null
+              ? '${profile.mcc}${profile.mnc}'
+              : null,
+          serviceProviderName: profile.serviceProviderName,
+        );
+        return predicted != null && predicted > 0
+            ? _buildEstimatedSizeBadge(predicted, theme)
+            : const SizedBox.shrink();
       },
     );
   }

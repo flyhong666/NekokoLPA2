@@ -440,7 +440,7 @@ class SettingsPage extends StatelessWidget {
               child: Column(
                 children: [
                   for (int i = 0; i < children.length; i++) ...[
-                    children[i],
+                    RepaintBoundary(child: children[i]),
                     if (i < children.length - 1) _buildDivider(context),
                   ],
                 ],
@@ -1268,7 +1268,8 @@ class SettingsPage extends StatelessWidget {
               if (confirmed == true) {
                 if (PlatformX.isMobile) {
                   final selectedPath = selectedFile.path;
-                  final bytes = selectedFile.bytes ??
+                  final bytes =
+                      selectedFile.bytes ??
                       (selectedPath == null
                           ? throw StateError(
                               'The selected file has no readable data.',

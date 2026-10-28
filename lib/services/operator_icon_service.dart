@@ -11,9 +11,14 @@ class OperatorIconService {
   static final Logger _log = Logger('OperatorIconService');
   static final OperatorIconService _instance = OperatorIconService._internal();
   factory OperatorIconService() => _instance;
-  OperatorIconService._internal();
+  OperatorIconService._internal() : _database = DatabaseService();
 
-  final Map<String, String> _memoryCache = {};
+  @visibleForTesting
+  OperatorIconService.withDatabase(this._database);
+
+  final DatabaseService _database;
+
+  final Map<String, String?> _memoryCache = {};
   final Map<String, Future<String?>> _pendingLoads = {};
   final Map<String, Uint8List> _decodedBytesCache = {};
   Timer? _notifyTimer;
@@ -29,6 +34,13 @@ class OperatorIconService {
     final cacheKey = _getCacheKey(mcc, mnc, gid1, gid2);
     return _memoryCache[cacheKey];
   }
+
+  bool hasCachedIcon({
+    required String mcc,
+    required String mnc,
+    String? gid1,
+    String? gid2,
+  }) => _memoryCache.containsKey(_getCacheKey(mcc, mnc, gid1, gid2));
 
   Uint8List? getDecodedIconBytesFromMemory({
     required String mcc,
@@ -71,17 +83,15 @@ class OperatorIconService {
     String? gid2,
   ) async {
     try {
-      final dbImage = await DatabaseService().getOperatorIcon(
+      final dbImage = await _database.getOperatorIcon(
         mcc: mcc,
         mnc: mnc,
         gid1: gid1,
         gid2: gid2,
       );
-      if (dbImage != null) {
-        _memoryCache[cacheKey] = dbImage;
-        return dbImage;
-      }
-      return null;
+      // Cache misses too, so a card scrolling back into view does not repeat the same query.
+      _memoryCache[cacheKey] = dbImage;
+      return dbImage;
     } finally {
       _pendingLoads.remove(cacheKey);
     }
@@ -176,7 +186,7 @@ class OperatorIconService {
         final base64Image = base64Encode(imageResponse.bodyBytes);
 
         try {
-          await DatabaseService().saveOperatorIcon(
+          await _database.saveOperatorIcon(
             mcc: mcc,
             mnc: mnc,
             gid1: gid1,

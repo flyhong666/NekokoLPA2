@@ -179,7 +179,7 @@ class RedactionSettingsPage extends StatelessWidget {
             child: Column(
               children: [
                 for (var i = 0; i < children.length; i++) ...[
-                  children[i],
+                  RepaintBoundary(child: children[i]),
                   if (i < children.length - 1)
                     Divider(
                       height: 1,

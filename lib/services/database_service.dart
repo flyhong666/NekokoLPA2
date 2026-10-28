@@ -59,6 +59,9 @@ class DatabaseService {
   factory DatabaseService() => _instance;
   DatabaseService._internal();
 
+  @visibleForTesting
+  DatabaseService.withDatabase(Database database) : _database = database;
+
   Database? _database;
   final Map<String, int?> _profileSizeCache = {};
   static final Logger _log = Logger('DatabaseService');
@@ -601,8 +604,12 @@ class DatabaseService {
       _profileSizeCache[cacheKey] = size;
       return size;
     }
+    _profileSizeCache[cacheKey] = null;
     return null;
   }
+
+  bool hasCachedProfileSize(String eid, String iccid) =>
+      _profileSizeCache.containsKey('${eid}_$iccid');
 
   Future<void> preloadProfileSizes(String eid, Iterable<String> iccids) async {
     final missingIccids = iccids

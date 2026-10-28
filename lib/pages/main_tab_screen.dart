@@ -8,6 +8,7 @@ import '../settings/app_settings.dart';
 import '../plugins/plugin_manager.dart';
 import 'package:flutter/foundation.dart';
 import '../utils/platform_adapter.dart';
+import '../widgets/lazy_tab_body.dart';
 
 class MainTabScreen extends StatefulWidget {
   const MainTabScreen({super.key});
@@ -49,6 +50,7 @@ class _MainTabScreenState extends State<MainTabScreen> {
     final pluginTabs = PluginManager().appTabs;
     final tabEntries = <_MainTabEntry>[
       _MainTabEntry(
+        id: 'profiles',
         label: l10n.manage,
         icon: Icons.sim_card_outlined,
         activeIcon: Icons.sim_card,
@@ -56,6 +58,7 @@ class _MainTabScreenState extends State<MainTabScreen> {
       ),
       ...pluginTabs.map(
         (tab) => _MainTabEntry(
+          id: 'plugin:${tab.id}',
           label: tab.label,
           icon: tab.icon,
           activeIcon: tab.activeIcon,
@@ -74,21 +77,26 @@ class _MainTabScreenState extends State<MainTabScreen> {
 
         tabEntries.add(
           _MainTabEntry(
+            id: 'browser:${tabConfig.url}',
             label: tabConfig.label,
             icon: _resolveIcon(tabConfig.icon, false),
             activeIcon: _resolveIcon(tabConfig.icon, true),
-            pageBuilder: (_) => BuyPage(
-              url: tabConfig.url,
-              title: tabConfig.title,
-            ),
+            pageBuilder: (_) =>
+                BuyPage(url: tabConfig.url, title: tabConfig.title),
           ),
         );
       }
     }
 
-    final pages = tabEntries
-        .map((entry) => Builder(builder: entry.pageBuilder))
-        .toList(growable: false);
+    if (_currentIndex >= tabEntries.length) _currentIndex = 0;
+    final pages = List<Widget>.generate(tabEntries.length, (index) {
+      final entry = tabEntries[index];
+      return LazyTabBody(
+        key: ValueKey(entry.id),
+        active: index == _currentIndex,
+        builder: entry.pageBuilder,
+      );
+    }, growable: false);
     final tabs = List<Widget>.generate(
       tabEntries.length,
       (index) => _buildTabItem(
@@ -101,11 +109,6 @@ class _MainTabScreenState extends State<MainTabScreen> {
       ),
       growable: false,
     );
-
-    // Adjust current index if it went out of bounds
-    if (_currentIndex >= pages.length) {
-      _currentIndex = 0;
-    }
 
     final showBottomBar = tabs.length > 1;
     final isDesktop = MediaQuery.of(context).size.width >= 600;
@@ -306,12 +309,14 @@ class _MainTabScreenState extends State<MainTabScreen> {
 
 class _MainTabEntry {
   const _MainTabEntry({
+    required this.id,
     required this.label,
     required this.icon,
     required this.activeIcon,
     required this.pageBuilder,
   });
 
+  final String id;
   final String label;
   final IconData icon;
   final IconData activeIcon;

@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 
-class ProfileSizePredictionService {
+class ProfileSizePredictionService extends ChangeNotifier {
   static final Logger _log = Logger('ProfileSizePredictionService');
   static final ProfileSizePredictionService _instance =
       ProfileSizePredictionService._internal();
@@ -10,34 +11,39 @@ class ProfileSizePredictionService {
   ProfileSizePredictionService._internal();
 
   Map<String, dynamic>? _data;
-  bool _isLoading = false;
+  final Map<String, List<dynamic>> _byRsp = {};
+  Future<void>? _loading;
+  final Map<(String?, String?, String?, String?), int?> _predictions = {};
+  static const _maxCachedPredictions = 512;
 
-  Future<void> ensureLoaded() async {
-    if (_data != null) return;
-    if (_isLoading) {
-      while (_data == null) {
-        await Future.delayed(const Duration(milliseconds: 100));
-      }
-      return;
-    }
+  Future<void> ensureLoaded() {
+    if (_data != null) return Future<void>.value();
+    return _loading ??= _load();
+  }
 
-    _isLoading = true;
+  Future<void> _load() async {
     try {
-      _log.info("Loading reference sizes...");
       final jsonString = await rootBundle.loadString(
         'data/reference_sizes_simple.json',
       );
-      _data = jsonDecode(jsonString);
-      _log.info(
-        "Loaded reference sizes: ${(_data?['results'] as List?)?.length} entries.",
-      );
-    } catch (e) {
-      _log.severe("Failed to load reference sizes: $e");
+      // The reference file is about 735 KB. Parse it off the mobile UI isolate.
+      _data = await compute(_decodeReference, jsonString);
+      for (final row in _data!['results'] as List) {
+        final rsp = row['rsp'];
+        if (rsp is String) {
+          (_byRsp[rsp.toLowerCase()] ??= []).add(row);
+        }
+      }
+    } catch (error) {
+      _log.severe('Failed to load reference sizes: $error');
       _data = {'results': []};
-    } finally {
-      _isLoading = false;
+      _byRsp.clear();
     }
+    notifyListeners();
   }
+
+  static Map<String, dynamic> _decodeReference(String source) =>
+      Map<String, dynamic>.from(jsonDecode(source) as Map);
 
   int? predictSize({
     required String? eid,
@@ -46,8 +52,36 @@ class ProfileSizePredictionService {
     String? serviceProviderName,
   }) {
     if (_data == null) return null;
+    final key = (
+      eid != null && eid.length >= 8 ? eid.substring(0, 8) : null,
+      smdpAddress?.toLowerCase(),
+      plmn,
+      serviceProviderName?.toLowerCase(),
+    );
+    if (_predictions.containsKey(key)) return _predictions[key];
+    final prediction = _predictUncached(
+      eid: eid,
+      smdpAddress: smdpAddress,
+      plmn: plmn,
+      serviceProviderName: serviceProviderName,
+    );
+    if (_predictions.length >= _maxCachedPredictions) {
+      _predictions.remove(_predictions.keys.first);
+    }
+    return _predictions[key] = prediction;
+  }
 
-    final results = _data!['results'] as List<dynamic>;
+  int? _predictUncached({
+    required String? eid,
+    String? smdpAddress,
+    String? plmn,
+    String? serviceProviderName,
+  }) {
+    if (_data == null) return null;
+
+    final results = smdpAddress == null
+        ? _data!['results'] as List<dynamic>
+        : _byRsp[smdpAddress.toLowerCase()] ?? const <dynamic>[];
     final referenceEum = _data!['reference_eum'] as String?;
 
     // Get EUM prefix from EID (first 8 digits)

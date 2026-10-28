@@ -239,7 +239,7 @@ class _TagsAndRemindersPageState extends State<TagsAndRemindersPage> {
             child: Column(
               children: [
                 for (int i = 0; i < children.length; i++) ...[
-                  children[i],
+                  RepaintBoundary(child: children[i]),
                   if (i < children.length - 1) _buildDivider(context),
                 ],
               ],
