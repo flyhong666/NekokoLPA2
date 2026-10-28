@@ -30,4 +30,6 @@ Both old public Android flavors embedded `store` and used the same signing certi
 
 `UPDATE_WORKER_URL` and `UPDATE_WORKER_KEY` are encrypted GitHub Actions secrets. They are never committed to this repository. Authentication is sent in a header, not a URL query string. The shared [metadata writer](../scripts/update_config_json.py) also supports vendor release callers, which keep their credentials and flavor settings separately.
 
+The public [feed row mapper](../tools/update_feed_entry.ts) preserves direct artifact downloads separately from release-page links. The deployment wrapper keeps only its D1 binding/cache infrastructure outside this repository.
+
 The feed is served at <https://updates.lpa.ee/nlpa2.json>. Edge caching can take up to five minutes to expose a newly published entry. The update button opens the selected download externally; it does not silently install software.

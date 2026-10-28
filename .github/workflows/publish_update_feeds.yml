@@ -34,6 +34,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: master
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify feed representation
+        run: node --experimental-strip-types --test test/scripts/update_feed_entry.test.mjs
       - name: Select the published release
         id: release
         env:
