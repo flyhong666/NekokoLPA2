@@ -1,0 +1,438 @@
+name: Build NekokoLPA2_Gemini
+
+on:
+  push:
+    branches: [release]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [release]
+  workflow_dispatch:
+    inputs:
+      android_tools_only:
+        description: Build rooted app and OTBridge only; attach to the existing app release
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+env:
+  ANDROID_PACKAGE_ID: ee.nekoko.nlpa2.open
+  DESKTOP_PACKAGE_ID: ee.nekoko.nlpa2
+  # Pinned so a stable-channel release cannot change the toolchain under us:
+  # 3.47.2 turned Flutter's Gradle/AGP/Kotlin minimums from warnings into
+  # errors. Bump deliberately, together with the versions in android/.
+  FLUTTER_VERSION: 3.47.2
+  # Where GmPlugin fetches a GM card's PSK. Builds without it still compile
+  # and run; they just use only PSKs already cached on the device.
+  GM_PSK_URL: https://key.9esim.com/psk
+
+jobs:
+  meta:
+    name: Read version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      version_clean: ${{ steps.version.outputs.version_clean }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TOOLS_ONLY: ${{ inputs.android_tools_only }}
+        run: |
+          version="$(awk '/^version:/ { print $2; exit }' pubspec.yaml)"
+          version_clean="${version//+/-}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "version_clean=$version_clean" >> "$GITHUB_OUTPUT"
+          if [ "$TOOLS_ONLY" = true ]; then
+            # 允许不存在 Release 时容错退回，不阻塞编译
+            gh release view "v$version" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || true
+          fi
+
+  android:
+    name: Build Android (${{ matrix.flavor }})
+    needs: meta
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        flavor: ${{ fromJSON(inputs.android_tools_only && '["privileged"]' || '["community","privileged"]') }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+      - run: dart analyze
+        if: matrix.flavor == 'community'
+      - run: flutter test
+        if: matrix.flavor == 'community'
+      - name: Build APK
+        env:
+          BUILD_FLAVOR: ${{ matrix.flavor }}
+        run: |
+          args=(--release --flavor "$BUILD_FLAVOR" --target lib/main.dart)
+          if [ "$BUILD_FLAVOR" = privileged ]; then
+            args+=(--target-platform android-arm64 --dart-define=PRIVILEGED_BUILD=true --dart-define=APP_VARIANT=open-rooted)
+          else
+            args+=(--dart-define=APP_VARIANT=open)
+          fi
+          flutter build apk "${args[@]}" --dart-define=GM_PSK_URL="$GM_PSK_URL"
+      - name: Package Android artifacts
+        env:
+          VERSION_CLEAN: ${{ needs.meta.outputs.version_clean }}
+          VERSION: ${{ needs.meta.outputs.version }}
+          BUILD_FLAVOR: ${{ matrix.flavor }}
+        run: |
+          mkdir -p dist
+          if [ "$BUILD_FLAVOR" = privileged ]; then
+            APK=build/app/outputs/flutter-apk/app-privileged-release.apk
+            cp "$APK" "dist/${ANDROID_PACKAGE_ID}-${VERSION_CLEAN}-rooted-arm64-v8a.apk"
+            python3 scripts/package_rooted_android.py --apk "$APK" \
+              --output "dist/${ANDROID_PACKAGE_ID}-${VERSION_CLEAN}-magisk.zip" --version "$VERSION"
+          else
+            cp build/app/outputs/flutter-apk/app-community-release.apk \
+              "dist/${ANDROID_PACKAGE_ID}-${VERSION_CLEAN}-android.apk"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-${{ matrix.flavor }}
+          path: dist/*
+          if-no-files-found: error
+
+  otbridge:
+    name: Build OTBridge helper and module
+    needs: meta
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Build and package the bridge
+        working-directory: otbridge
+        run: |
+          ./gradlew :app:assembleRelease
+          ./scripts/build.sh
+          version=$(awk -F '"' '/versionName =/ {print $2; exit}' app/build.gradle.kts)
+          mkdir -p ../dist
+          cp为了确保你的编译产物能够稳定且顺利地上传发布到 GitHub Releases，主要需要解决以下几个问题：
+
+1. **分支限制问题**：原本的 `release` Job 强制要求处于 `refs/heads/release` 分支或者开启 `android_tools_only`[cite: 1]，如果你在 `main` 或其他分支上运行，发布步骤会被直接跳过。
+2. **`gh` 命令行鉴权与错误隐患**：原本依赖脚本手动拼接 `gh release create/upload` 命令，并且在 `meta` Job 中如果开启 `TOOLS_ONLY` 且目标 Release 不存在时会直接中断报错[cite: 1]。
+3. **改用社区标准的 `softprops/action-gh-release@v2`**：使用专门的 GitHub Release Action 替代纯 Bash 脚本，能够更稳定地处理断点续传、文件匹配覆盖以及 Release 规则创建。
+
+---
+
+### 修改后的完整 `.github/workflows/build_NekokoLPA2.yml`
+
+你可以直接用以下代码覆盖现有的工作流文件：
+
+```yaml
+name: Build NekokoLPA2
+
+on:
+  push:
+    branches: [ release, main ] # 允许在 release 或 main 分支 push 时触发
+    tags:
+      - 'v*'                    # 支持推 Tag 时自动触发发布
+  pull_request:
+    branches: [ release, main ]
+  workflow_dispatch:
+    inputs:
+      android_tools_only:
+        description: Build rooted app and OTBridge only; attach to the existing app release
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+env:
+  ANDROID_PACKAGE_ID: ee.nekoko.nlpa2.open
+  DESKTOP_PACKAGE_ID: ee.nekoko.nlpa2
+  FLUTTER_VERSION: 3.47.2
+  GM_PSK_URL: [https://key.9esim.com/psk](https://key.9esim.com/psk)
+
+jobs:
+  meta:
+    name: Read version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      version_clean: ${{ steps.version.outputs.version_clean }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: version
+        env:
+          TOOLS_ONLY: ${{ inputs.android_tools_only }}
+        run: |
+          version="$(awk '/^version:/ { print $2; exit }' pubspec.yaml)"
+          version_clean="${version//+/-}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "version_clean=$version_clean" >> "$GITHUB_OUTPUT"
+
+  android:
+    name: Build Android (${{ matrix.flavor }})
+    needs: meta
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        flavor: ${{ fromJSON(inputs.android_tools_only && '["privileged"]' || '["community","privileged"]') }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+      - run: dart analyze
+        if: matrix.flavor == 'community'
+      - run: flutter test
+        if: matrix.flavor == 'community'
+      - name: Build APK
+        env:
+          BUILD_FLAVOR: ${{ matrix.flavor }}
+        run: |
+          args=(--release --flavor "$BUILD_FLAVOR" --target lib/main.dart)
+          if [ "$BUILD_FLAVOR" = privileged ]; then
+            args+=(--target-platform android-arm64 --dart-define=PRIVILEGED_BUILD=true --dart-define=APP_VARIANT=open-rooted)
+          else
+            args+=(--dart-define=APP_VARIANT=open)
+          fi
+          flutter build apk "${args[@]}" --dart-define=GM_PSK_URL="$GM_PSK_URL"
+      - name: Package Android artifacts
+        env:
+          VERSION_CLEAN: ${{ needs.meta.outputs.version_clean }}
+          VERSION: ${{ needs.meta.outputs.version }}
+          BUILD_FLAVOR: ${{ matrix.flavor }}
+        run: |
+          mkdir -p dist
+          if [ "$BUILD_FLAVOR" = privileged ]; then
+            APK=build/app/outputs/flutter-apk/app-privileged-release.apk
+            cp "$APK" "dist/${ANDROID_PACKAGE_ID}-${VERSION_CLEAN}-rooted-arm64-v8a.apk"
+            python3 scripts/package_rooted_android.py --apk "$APK" \
+              --output "dist/${ANDROID_PACKAGE_ID}-${VERSION_CLEAN}-magisk.zip" --version "$VERSION"
+          else
+            cp build/app/outputs/flutter-apk/app-community-release.apk \
+              "dist/${ANDROID_PACKAGE_ID}-${VERSION_CLEAN}-android.apk"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-${{ matrix.flavor }}
+          path: dist/*
+          if-no-files-found: error
+
+  otbridge:
+    name: Build OTBridge helper and module
+    needs: meta
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Build and package the bridge
+        working-directory: otbridge
+        run: |
+          ./gradlew :app:assembleRelease
+          ./scripts/build.sh
+          version=$(awk -F '"' '/versionName =/ {print $2; exit}' app/build.gradle.kts)
+          mkdir -p ../dist
+          cp app/build/outputs/apk/release/app-release.apk "../dist/otbridge-${version}.apk"
+          cp "build/otbridge-magisk-kernelsu-v${version}.zip" ../dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: otbridge
+          path: dist/*
+          if-no-files-found: error
+
+  web:
+    name: Build web
+    needs: meta
+    if: ${{ !inputs.android_tools_only }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+      - run: flutter build web --release --dart-define=APP_VARIANT=std --dart-define=GM_PSK_URL=${{ env.GM_PSK_URL }}
+      - name: Package web build
+        env:
+          VERSION_CLEAN: ${{ needs.meta.outputs.version_clean }}
+        run: |
+          mkdir -p dist
+          ( cd build/web && zip -r "../../dist/${DESKTOP_PACKAGE_ID}.web-${VERSION_CLEAN}.zip" . )
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: dist/*
+
+  linux:
+    name: Build Linux (x64)
+    needs: meta
+    if: ${{ !inputs.android_tools_only }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zip tar libgtk-3-dev libblkid-dev liblzma-dev \
+            libgcrypt20-dev libcurl4-openssl-dev libsecret-1-dev wget fuse
+          sudo wget -q [https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage](https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage) -O /usr/local/bin/appimagetool
+          sudo chmod +x /usr/local/bin/appimagetool
+      - run: flutter pub get
+      - run: flutter build linux --release --dart-define=APP_VARIANT=std --dart-define=GM_PSK_URL=${{ env.GM_PSK_URL }}
+      - name: Package tar.gz + AppImage
+        env:
+          VERSION_CLEAN: ${{ needs.meta.outputs.version_clean }}
+        run: |
+          set -euxo pipefail
+          mkdir -p dist
+          BUNDLE=build/linux/x64/release/bundle
+          TARNAME="${DESKTOP_PACKAGE_ID}.linux-${VERSION_CLEAN}-x64"
+
+          ( cd "$BUNDLE/.." && tar -czf "$GITHUB_WORKSPACE/dist/${TARNAME}.tar.gz" -C bundle . )
+
+          APPDIR="appimage/${TARNAME}.AppDir"
+          mkdir -p "$APPDIR"
+          cp -r "$BUNDLE"/. "$APPDIR/"
+          cat > "$APPDIR/${DESKTOP_PACKAGE_ID}.desktop" <<EOF "$APPDIR/${DESKTOP_PACKAGE_ID}.png" '\x89PNG\r\n\x1a\n' -f 2 Categories="Utility;" EOF Entry] Exec="nlpa2" Icon="${DESKTOP_PACKAGE_ID}" Name="NekokoLPA" Type="Application" [ [Desktop ]; assets/logo.png cp data/logo.png elif else if printf then> "$APPDIR/${DESKTOP_PACKAGE_ID}.png"
+          fi
+          cat > "$APPDIR/AppRun" <<'EOF'
+          #!/bin/bash
+          HERE="$(dirname "$(readlink -f "$0")")"
+          exec "$HERE/nlpa2" "$@"
+          EOF
+          chmod +x "$APPDIR/AppRun"
+          ARCH=x86_64 appimagetool "$APPDIR" "dist/${TARNAME}.AppImage" || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: dist/*
+
+  windows:
+    name: Build Windows (x64)
+    needs: meta
+    if: ${{ !inputs.android_tools_only }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+      - run: flutter build windows --release --dart-define=APP_VARIANT=std --dart-define=GM_PSK_URL=${{ env.GM_PSK_URL }}
+      - name: Stage release tree
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          $base = "${env:DESKTOP_PACKAGE_ID}.windows-${{ needs.meta.outputs.version_clean }}-x64"
+          Compress-Archive -Path build\windows\x64\runner\Release\* `
+            -DestinationPath "dist\$base.zip" -Force
+      - name: Build Inno Setup installer
+        shell: pwsh
+        env:
+          APP_VERSION: ${{ needs.meta.outputs.version }}
+        run: |
+          $version = $env:APP_VERSION
+          $name    = ($version -split '\+')[0]
+          $build   = ($version -split '\+')[1]
+          if (-not $build) { $build = "0" }
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            $iscc = "C:\Program Files\Inno Setup 6\ISCC.exe"
+          }
+          & $iscc /DAppVersion=$name /DAppBuildNumber=$build installer\installer.iss
+          $expected = "build\windows\installer\${env:DESKTOP_PACKAGE_ID}.windows-$name-$build-setup.exe"
+          if (-not (Test-Path $expected)) {
+            Write-Error "Installer not produced at $expected"
+            exit 1
+          }
+          Copy-Item $expected "dist\${env:DESKTOP_PACKAGE_ID}.windows-${{ needs.meta.outputs.version_clean }}-setup.exe"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/*
+
+  release:
+    name: Create GitHub Release
+    if: >-
+      always() && !cancelled() &&
+      github.event_name != 'pull_request' &&
+      needs.meta.result == 'success' && 
+      needs.android.result == 'success' &&
+      needs.otbridge.result == 'success' &&
+      (inputs.android_tools_only ||
+       (needs.web.result == 'success' && needs.linux.result == 'success' && needs.windows.result == 'success'))
+    needs: [meta, android, otbridge, web, linux, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Generate Changelog
+        id: changelog
+        run: |
+          VERSION="${{ needs.meta.outputs.version }}"
+          release_notes="$(awk -v ver="[$VERSION]" 'index($0, "## " ver) == 1 {p=1; next} p && /^## \[/ {p=0} p' CHANGELOG.md | sed '/^$/d' | head -n 20)"
+          if [ -z "$release_notes" ]; then
+            release_notes="Public builds for NekokoLPA2 v$VERSION"
+          fi
+          echo "notes<<EOF">> $GITHUB_OUTPUT
+          echo "$release_notes" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ needs.meta.outputs.version }}"
+          name: "NekokoLPA2 v${{ needs.meta.outputs.version }}"
+          body: ${{ steps.changelog.outputs.notes }}
+          files: dist/*
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
