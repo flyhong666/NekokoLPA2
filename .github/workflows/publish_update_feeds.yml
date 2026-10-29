@@ -1,4 +1,4 @@
-name: Publish Open update feeds
+name: Publish update feeds
 
 on:
   release:
@@ -14,9 +14,9 @@ on:
         type: string
         required: false
       migrate_standard_desktop:
-        description: Offer Open builds to legacy standard desktop users (provider status extras are omitted)
+        description: Publish the shared NekokoLPA2 Windows/Linux builds to legacy standard channels
         type: boolean
-        default: false
+        default: true
 
 permissions:
   contents: read
@@ -58,7 +58,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
-          MIGRATE_STANDARD_DESKTOP: ${{ inputs.migrate_standard_desktop }}
+          MIGRATE_STANDARD_DESKTOP: ${{ github.event_name != 'workflow_dispatch' || inputs.migrate_standard_desktop }}
           UPDATE_WORKER_URL: ${{ secrets.UPDATE_WORKER_URL }}
           UPDATE_WORKER_KEY: ${{ secrets.UPDATE_WORKER_KEY }}
         run: |

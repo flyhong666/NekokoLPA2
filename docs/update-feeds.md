@@ -1,37 +1,42 @@
 # Update delivery
 
-NekokoLPA2 is the public application. Its updater, channel selection, release metadata publisher and release-triggered workflow are maintained here. Kasutera contributes only optional provider integrations, branding, signing and release configuration; generic update code does not belong in its private overlay.
+The updater, channel selection, metadata publisher and release workflow are maintained in NekokoLPA2. Android has an **Open** variant. Desktop and web builds are **NekokoLPA 2**, built from this public application.
 
 ## Channels
 
-| Channel | Artifact |
+| Platform / channel | Artifact |
 | --- | --- |
-| Android `open` | Public community APK, including the universal APK for ARMv7 clients |
-| Android `open-rooted` | Public full rooted APK, with the existing rooted package identity |
-| Windows `open` / `open-portable` | Public installer / portable ZIP |
-| Linux `open` / `open-appimage` / `open-tgz` | Public AppImage / AppImage / tarball |
+| Android `open` | Public Open APK; the universal APK also supports ARMv7 clients |
+| Android `open-rooted` | Public full rooted APK with its existing rooted package identity |
+| Windows `std` | NekokoLPA 2 installer |
+| Linux `std` / `std-appimage` / `std-tgz` | NekokoLPA 2 AppImage / AppImage / tarball |
+| Earlier desktop `open`, `open-portable`, `open-appimage`, `open-tgz`, `store` | Compatibility aliases to the same desktop downloads |
 
-Android selects its exact variant and signing certificate, then the highest build newer than the installed version. Normal Open and rooted Open cannot match each other's channels. Public desktop clients require their own channel and do not fall back to a vendor build. macOS/iOS use Store/TestFlight delivery rather than this in-app updater.
+Android selects the exact variant and signing certificate, then the highest build newer than the installed version. Normal and rooted Open APKs cannot match each other's channels. Windows/Linux standard feeds and historical public aliases now use the same desktop application. macOS/iOS use Store/TestFlight delivery.
 
-## Legacy Open builds
+## Earlier builds
 
-The original 2.4.0+600 public artifacts embedded `store`. Compatibility feed entries keep those installations updateable. Windows/Linux `store` entries point to the public artifacts.
+The original 2.4.0+600 public artifacts embedded `store`. Windows/Linux compatibility entries point to the shared desktop downloads.
 
-Both old public Android flavors embedded `store` and used the same signing certificate. Their old updater cannot distinguish the normal package from the rooted package. Its compatibility entry therefore opens the release chooser: choose the **Open Android APK** for `ee.nekoko.nlpa2.open`, or the **Open rooted APK/module** for `ee.nekoko.nlpa2`. Do not install a vendor APK over the Open app. Future public builds carry `open` or `open-rooted` explicitly.
+Both original public Android flavors embedded `store` and used the same community certificate. Their updater cannot distinguish the normal package from the rooted package, so its compatibility entry opens the release chooser. Choose the Open Android APK for `ee.nekoko.nlpa2.open`, or the Open rooted APK/module for `ee.nekoko.nlpa2`. Vendor Android APKs retain their different package/signing identities.
+
+Canonical desktop filenames omit `.open-`. Earlier filenames remain valid links to byte-identical downloads. The publisher accepts historical names for older releases, and prefers canonical desktop names when both exist.
 
 ## Publishing
 
-[Publish Open update feeds](../.github/workflows/publish_update_feeds.yml) runs after a stable release or successful public release build. It can also be dispatched manually with a published release tag. The publisher:
+[Publish update feeds](../.github/workflows/publish_update_feeds.yml) runs after a stable release or successful public release build. It can also be dispatched manually with a published release tag. It:
 
-1. Requires the latest published stable app release and all expected uploaded assets.
-2. Downloads and verifies the Android APKs' community signing certificate.
-3. Writes the correct artifact URLs, sizes, version and build to each channel.
-4. Refuses to overwrite a newer feed build and fails CI if a write is rejected.
+1. Requires the latest published stable release and every expected uploaded asset.
+2. Downloads and verifies Android Open APKs' community certificate.
+3. Writes direct artifact URLs, sizes, version and build to each channel.
+4. Refuses a feed downgrade and fails if a write is rejected.
 
-A manual dispatch can explicitly enable `migrate_standard_desktop` to offer Open artifacts to legacy Windows/Linux `std` users. Its feed note explains that private provider status add-ons are omitted. From 2.4.1+601, eSIM.cc and eSIM.gg are public and included; only the 3HK status add-on remains private. This migration is separate from maintaining the Open channels, so publishing Open does not silently replace a vendor distribution.
+Publishing standard Windows/Linux feeds from the public repository is enabled by default, including automatic release events. The manual `migrate_standard_desktop` input retains an opt-out for release maintenance; the CLI flag with the same name supports older automation. This changes desktop metadata only, never Android package/signing channels.
 
-`UPDATE_WORKER_URL` and `UPDATE_WORKER_KEY` are encrypted GitHub Actions secrets. They are never committed to this repository. Authentication is sent in a header, not a URL query string. The shared [metadata writer](../scripts/update_config_json.py) also supports vendor release callers, which keep their credentials and flavor settings separately.
+The 601 desktop release includes eSIM.cc/eSIM.gg but predates the public 3HK plugin. All three provider plugins are now public source; 3HK is included from the next build. Migration notes refer to the selected release's actual integrations.
 
-The public [feed row mapper](../tools/update_feed_entry.ts) preserves direct artifact downloads separately from release-page links. The deployment wrapper keeps only its D1 binding/cache infrastructure outside this repository.
+`UPDATE_WORKER_URL` and `UPDATE_WORKER_KEY` are encrypted GitHub Actions secrets. Authentication is sent in a header, never a URL query. The shared [metadata writer](../scripts/update_config_json.py) also supports branded Android release callers.
 
-The feed is served at <https://updates.lpa.ee/nlpa2.json>. Edge caching can take up to five minutes to expose a newly published entry. The update button opens the selected download externally; it does not silently install software.
+The public [feed row mapper](../tools/update_feed_entry.ts) preserves direct artifact downloads separately from release-page links. Deployment-specific D1/cache configuration remains outside this repository.
+
+The feed is served at <https://updates.lpa.ee/nlpa2.json>. Edge caching can take up to five minutes to expose a new entry. Update buttons open downloads externally; they do not silently install software.

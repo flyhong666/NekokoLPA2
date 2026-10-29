@@ -1,7 +1,7 @@
-; Inno Setup Installer Script for NekokoLPA2 (community public build).
+; Inno Setup Installer Script for NekokoLPA2 (public desktop build).
 ; Compiled with Inno Setup Compiler (ISCC.exe).
 
-#define AppName "NekokoLPA 2 Community"
+#define AppName "NekokoLPA 2"
 #define AppShortName "nlpa2"
 #define AppPublisher "ee.nekoko"
 #define AppURL "https://github.com/iebb/NekokoLPA2"
@@ -29,7 +29,7 @@ DefaultDirName={autopf}\NekokoLPA2
 DefaultGroupName={#AppName}
 AllowNoIcons=yes
 OutputDir=..\build\windows\installer
-OutputBaseFilename=ee.nekoko.nlpa2.open-{#AppVersion}-{#AppBuildNumber}-setup
+OutputBaseFilename=ee.nekoko.nlpa2.windows-{#AppVersion}-{#AppBuildNumber}-setup
 SetupIconFile=..\windows\runner\resources\app_icon.ico
 Compression=lzma
 SolidCompression=yes

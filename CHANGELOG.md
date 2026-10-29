@@ -2,6 +2,15 @@
 
 All notable changes to NekokoLPA2 will be documented in this file.
 
+## Unreleased
+
+### Added
+- Published the 3HK number, line-expiry and package-status plugin. All provider plugins now live in the public repository.
+
+### Changed
+- Use Open only for Android variant names; Windows, macOS, Linux and web use NekokoLPA 2.
+- Publish the shared Windows/Linux builds to standard desktop update feeds, retaining earlier channel and filename compatibility.
+
 ## [2.4.1+601] - 2026-10-29
 
 ### Performance

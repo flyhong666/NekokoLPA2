@@ -72,6 +72,7 @@ jobs:
           flutter pub get
           flutter build web --release --no-pub \
             --base-href / \
+            --dart-define=APP_VARIANT=std \
             --dart-define=GM_PSK_URL="$GM_PSK_URL"
           python3 - <<'PY'
           import json, os

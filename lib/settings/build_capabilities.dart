@@ -4,6 +4,13 @@ class BuildCapabilities {
   // Increment this when the warning changes enough to require a fresh opt-in.
   static const int vowifiConsentVersion = 1;
 
+  static String variantForPlatform(String variant, {required bool isAndroid}) {
+    if (!isAndroid && (variant == 'open' || variant == 'open-rooted')) {
+      return 'std';
+    }
+    return variant;
+  }
+
   static bool isEsim9Variant(String value) {
     final normalized = value.trim().toLowerCase();
     return normalized == 'esim9' || normalized == '9esim';

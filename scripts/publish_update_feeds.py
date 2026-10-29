@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publish release assets to isolated Open or standard update channels."""
+"""Publish Android variants and the shared NekokoLPA2 desktop releases."""
 import argparse
 import json
 from pathlib import Path
@@ -40,7 +40,7 @@ def plan(release, channel, certificates, migrate_standard_desktop=False):
         result.append(metadata(platform, variant, version, build,
                                asset['browser_download_url'], signatures, asset['size']))
 
-    if channel == 'open':
+    if channel in ('public', 'open'):
         prefix = f'ee.nekoko.nlpa2.open-{suffix}'
         for variant, filename in [
             ('open', f'{prefix}-android.apk'),
@@ -59,17 +59,21 @@ def plan(release, channel, certificates, migrate_standard_desktop=False):
         legacy['data']['changelog'] = ('Open update available. Choose the Open Android APK or the Open rooted module matching your installation; vendor APKs use different signing/package identities.')
         result.append(legacy)
         result.append({**legacy, 'platform': 'android-armeabi-v7a'})
-        for variant, tail in [('open', 'windows-setup.exe'), ('open-portable', 'windows-x64.zip'), ('store', 'windows-setup.exe')]:
-            add('windows', variant, f'{prefix}-{tail}')
+        def desktop(platform, variant, canonical, legacy):
+            add(platform, variant, canonical if canonical in assets else legacy)
+
+        for variant, tail in [('open', 'setup.exe'), ('open-portable', 'x64.zip'), ('store', 'setup.exe')]:
+            legacy_tail = 'windows-' + tail
+            desktop('windows', variant, f'ee.nekoko.nlpa2.windows-{suffix}-{tail}', f'{prefix}-{legacy_tail}')
         for variant, tail in [('open', 'AppImage'), ('open-appimage', 'AppImage'), ('open-tgz', 'tar.gz'), ('store', 'AppImage')]:
-            add('linux', variant, f'{prefix}-linux-x64.{tail}')
+            desktop('linux', variant, f'ee.nekoko.nlpa2.linux-{suffix}-x64.{tail}', f'{prefix}-linux-x64.{tail}')
         if migrate_standard_desktop:
             start = len(result)
-            add('windows', 'std', f'{prefix}-windows-setup.exe')
+            desktop('windows', 'std', f'ee.nekoko.nlpa2.windows-{suffix}-setup.exe', f'{prefix}-windows-setup.exe')
             for variant, tail in [('std', 'AppImage'), ('std-appimage', 'AppImage'), ('std-tgz', 'tar.gz')]:
-                add('linux', variant, f'{prefix}-linux-x64.{tail}')
+                desktop('linux', variant, f'ee.nekoko.nlpa2.linux-{suffix}-x64.{tail}', f'{prefix}-linux-x64.{tail}')
             for entry in result[start:]:
-                entry['data']['changelog'] = ('NekokoLPA desktop now uses the Open distribution. Core LPA, readers and experimental IMS/SMS are included. Private provider status add-ons are omitted; see the release notes for the included public integrations.')
+                entry['data']['changelog'] = ('Desktop updates now come from the public NekokoLPA2 repository. Core LPA, readers and experimental IMS/SMS are included. See the release notes for provider integrations included in this build.')
     elif channel == 'standard':
         add('windows', 'std', f'ee.nekoko.nlpa2.windows-{suffix}-setup.exe')
         for variant, tail in [('std', 'AppImage'), ('std-appimage', 'AppImage'), ('std-tgz', 'tar.gz')]:
@@ -82,7 +86,7 @@ def plan(release, channel, certificates, migrate_standard_desktop=False):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--release-tag', default='')
-    parser.add_argument('--channel', choices=['open', 'standard'], default='open')
+    parser.add_argument('--channel', choices=['public', 'open', 'standard'], default='public')
     parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--migrate-standard-desktop', action='store_true')
     args = parser.parse_args()
@@ -94,7 +98,7 @@ def main():
     release = latest
     certificates = {}
     with tempfile.TemporaryDirectory() as tmp:
-        if args.channel == 'open':
+        if args.channel in ('public', 'open'):
             suffix = tag[1:].replace('+', '-')
             for tail in ['android.apk', 'rooted-arm64-v8a.apk']:
                 filename = f'ee.nekoko.nlpa2.open-{suffix}-{tail}'

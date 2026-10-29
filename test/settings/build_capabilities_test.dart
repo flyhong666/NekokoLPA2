@@ -6,6 +6,28 @@ import 'package:nlpa2/utils/platform_adapter.dart';
 
 void main() {
   group('BuildCapabilities', () {
+    test(
+      'Open names are Android-only; other platforms use the standard app',
+      () {
+        for (final variant in ['open', 'open-rooted']) {
+          expect(
+            BuildCapabilities.variantForPlatform(variant, isAndroid: true),
+            variant,
+          );
+          expect(
+            BuildCapabilities.variantForPlatform(variant, isAndroid: false),
+            'std',
+          );
+        }
+        for (final variant in ['esim9', 'std', 'sekiu']) {
+          expect(
+            BuildCapabilities.variantForPlatform(variant, isAndroid: false),
+            variant,
+          );
+        }
+      },
+    );
+
     test('recognizes every supported 9eSIM identity signal', () {
       expect(BuildCapabilities.isEsim9Variant('esim9'), isTrue);
       expect(BuildCapabilities.isEsim9Variant('9eSIM'), isTrue);

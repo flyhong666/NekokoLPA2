@@ -7,6 +7,7 @@ import 'esim_gg_plugin.dart';
 import 'estk_plugin.dart';
 import 'gm_plugin.dart';
 import 'nekoko_stats_plugin.dart';
+import 'thk_plugin.dart';
 import 'ty_ble_plugin.dart';
 import 'vowifi_plugin.dart';
 import 'vowifi_sim_probe_plugin.dart';
@@ -26,6 +27,7 @@ class BuildPluginRegistry {
         'EsimGgPlugin': EsimGgPlugin.new,
         'EstkPlugin': EstkPlugin.new,
         'NekokoStatsPlugin': NekokoStatsPlugin.new,
+        'ThkPlugin': ThkPlugin.new,
         'TyBlePlugin': TyBlePlugin.new,
         'VowifiPlugin': VowifiPlugin.new,
         'VowifiSimProbePlugin': VowifiSimProbePlugin.new,

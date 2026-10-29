@@ -15,7 +15,7 @@ NekokoLPA2 is a cross-platform eSIM management app for working with local eUICCs
 
 [Get started](#get-started) · [Readers and platforms](#platform-support) · [VoWiFi and IMS](#vowifi-and-ims) · [Build from source](#build-from-source) · [Troubleshooting](#troubleshooting)
 
-Choosing a download: [Open versus standard builds](docs/build-variants.md) · [OTBridge versus the rooted app](docs/android-root.md).
+Choosing a download: [Android variants and desktop builds](docs/build-variants.md) · [OTBridge versus the rooted app](docs/android-root.md).
 
 Android OMAPI: [restart regression and recovery](docs/omapi-recovery.md).
 
@@ -73,6 +73,7 @@ Translations are managed on [Crowdin](https://crowdin.com/project/nekokolpa2).
 - **SIM probing**: Plain SIMs can show their operator and identity details on the unsupported-card screen when the connected reader permits raw APDUs.
 - **Desktop VoWiFi/SMS**: Optional experimental SMS sessions backed by an external SIM reader on Windows, macOS and Linux
 - **Rooted Android path**: `OTBridge` can enable Telephony support and bypass OMAPI ARA-M restrictions while keeping the main app unprivileged
+- **Provider integrations**: eSIM.cc rewards/portal, eSIM.gg number/balance/package status, and 3HK number/expiry/package status are maintained here in the public repository.
 - **Profile organization**: Custom icons, notes, tags, and compact management tools
 - **Scheduled notifications**: Reminders for expiry and other profile-related events
 - **Cross-platform UI**: Responsive layout with platform-aware reader flows

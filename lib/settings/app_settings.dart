@@ -100,17 +100,28 @@ class AppSettings extends ChangeNotifier {
       'APP_VARIANT',
       defaultValue: '',
     );
-    if (envVariant.isNotEmpty) return envVariant;
+    if (envVariant.isNotEmpty) {
+      return BuildCapabilities.variantForPlatform(
+        envVariant,
+        isAndroid: PlatformX.isAndroid,
+      );
+    }
 
     // Public Android identity wins over stale rebranding assets.
-    if (_packageName.endsWith('.open')) return 'open';
-    if (kIsPrivileged &&
+    if (PlatformX.isAndroid && _packageName.endsWith('.open')) return 'open';
+    if (PlatformX.isAndroid &&
+        kIsPrivileged &&
         (_flavorFileVariant == 'open' || _flavorFileVariant == 'store')) {
       return 'open-rooted';
     }
 
     // 2. Check if flavor.json defines a variant
-    if (_flavorFileVariant.isNotEmpty) return _flavorFileVariant;
+    if (_flavorFileVariant.isNotEmpty) {
+      return BuildCapabilities.variantForPlatform(
+        _flavorFileVariant,
+        isAndroid: PlatformX.isAndroid,
+      );
+    }
 
     // 3. Check package name suffixes
     if (_packageName.endsWith('.multi') || _packageName.endsWith('.m')) {
