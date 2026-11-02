@@ -9,6 +9,13 @@ class AppLocalizationsJa extends AppLocalizations {
   AppLocalizationsJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get addBluetoothReader => 'Add Bluetooth reader';
+
+  @override
+  String get bluetoothSetupFailed =>
+      'Unable to set up the Bluetooth reader. Check that Bluetooth is on and the reader is nearby, then try again.';
+
+  @override
   String get settingsTitle => '設定';
 
   @override
@@ -3007,4 +3014,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get pluginVisitWebsite => 'Visit Website';
+
+  @override
+  String get omapiEuiccDetectedTitle => 'Keep this eUICC available';
+
+  @override
+  String get omapiEuiccSystemDisableWarning =>
+      'Disabling this SIM/eSIM slot in Android system settings may stop OMAPI from detecting it. Enable or switch profiles in this app instead. If the slot is already disabled, re-enable it in system settings and refresh the reader list.';
+
+  @override
+  String get deleteNotificationHistoryEntry => 'Delete local history entry';
 }

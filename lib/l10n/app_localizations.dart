@@ -113,6 +113,18 @@ abstract class AppLocalizations {
     Locale('zh'),
   ];
 
+  /// No description provided for @addBluetoothReader.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Bluetooth reader'**
+  String get addBluetoothReader;
+
+  /// No description provided for @bluetoothSetupFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to set up the Bluetooth reader. Check that Bluetooth is on and the reader is nearby, then try again.'**
+  String get bluetoothSetupFailed;
+
   /// No description provided for @settingsTitle.
   ///
   /// In en, this message translates to:
@@ -5662,6 +5674,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Visit Website'**
   String get pluginVisitWebsite;
+
+  /// No description provided for @omapiEuiccDetectedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep this eUICC available'**
+  String get omapiEuiccDetectedTitle;
+
+  /// No description provided for @omapiEuiccSystemDisableWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabling this SIM/eSIM slot in Android system settings may stop OMAPI from detecting it. Enable or switch profiles in this app instead. If the slot is already disabled, re-enable it in system settings and refresh the reader list.'**
+  String get omapiEuiccSystemDisableWarning;
+
+  /// Deletes the local notification history payload, without removing the notification from the eUICC or sending it again.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete local history entry'**
+  String get deleteNotificationHistoryEntry;
 }
 
 class _AppLocalizationsDelegate

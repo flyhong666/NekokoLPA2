@@ -80,6 +80,7 @@ Translations are managed on [Crowdin](https://crowdin.com/project/nekokolpa2).
 
 ## Android Notes
 
+- The public Android edition is **NekokoLPA 2 Community**, using the dolphin/sekiu artwork. It replaces the Open name while retaining the existing package and signing identity for updates. [Compare the Android variants](docs/build-variants.md).
 - NekokoLPA2 prefers the external `OTBridge` provider on Android when it is installed.
 - On rooted Android devices, `OTBridge` can expose Telephony/TMAPI access and help bypass OMAPI ARA-M restrictions while keeping NekokoLPA2 itself on the normal app path.
 - OTBridge source and builds now live in this repository: [source](otbridge/), [release downloads](https://github.com/iebb/NekokoLPA2/releases).
@@ -182,3 +183,7 @@ The NekokoLPA cat mascot artwork was created by @sanzennami. Reference use is OK
 ---
 
 © 2026 Nekoko.
+
+## Public build and service tooling
+
+Community/Open Android builds can use the [secret-free reproducible recipe](docs/reproducible-community.md), with the committed public signing key. The [shared build tools](docs/build-tooling.md), [lineage helper](docs/android-lineage.md), Windows installer helpers and [update/config service](services/update-service/README.md) are maintained in this repository. Branding overlays provide configuration and artwork separately.

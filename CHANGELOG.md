@@ -2,14 +2,47 @@
 
 All notable changes to NekokoLPA2 will be documented in this file.
 
-## Unreleased
+## [Unreleased]
+
+## [2.4.4+604] - 2026-11-01
+
+### Fixed
+- Allow bound UDP sockets in sandboxed macOS release builds, fixing VoWiFi ePDG attachment failing with "Operation not permitted".
+
+## [2.4.3+603] - 2026-10-31
+
+### Fixed
+- Restore standard iOS Bluetooth discovery so BeeSIM and other name-discovered readers are not excluded by AccessorySetupKit service filters.
+- Keep Bluetooth reader setup errors inside the dialog error handler.
+- Keep delivered notifications visible while they remain on the eUICC, and verify card removal before reporting success (#42).
+- Preserve a minimal delivery receipt when local history is deleted, preventing an already delivered notification from being sent again (#42).
+- Queue automatic notification processing after profile operations instead of losing requests during a concurrent badge refresh (#43).
+- Send notifications without requiring an unrelated connectivity-probe server to be reachable (#43).
+
+### Build and distribution
+- Build Community and rooted Community Android APKs from public source without private credentials, verifying identical signed APKs across two clean builds.
+- Publish shared build and release tooling in NekokoLPA2; keep brand data and distribution credentials separate.
+
+## [2.4.2+602] - 2026-10-31
+
+### Fixed
+- Keep iOS AccessorySetupKit registration out of the shared macOS Bluetooth implementation.
+- Close released cached OMAPI channels immediately when Android enters the background, addressing the restart safety-marker path reported in #58. Keep active operations and reboot protection after a real channel-close failure.
+- Retry WebCard AID selection on the basic channel when a driver allocates a logical channel but SELECT returns 6881 (#31).
 
 ### Added
+- Recognize the optional ATR eUICC capability flag and show OMAPI users a notice about keeping the SIM/eSIM slot enabled in Android system settings.
 - Published the 3HK number, line-expiry and package-status plugin. All provider plugins now live in the public repository.
+- Added iOS accessory setup for supported Bluetooth readers.
 
 ### Changed
-- Use Open only for Android variant names; Windows, macOS, Linux and web use NekokoLPA 2.
+- Name the public Android variant Community, retaining the existing package ID and signing certificate for upgrades. Desktop and web builds use NekokoLPA 2.
 - Publish the shared Windows/Linux builds to standard desktop update feeds, retaining earlier channel and filename compatibility.
+- Move Crowdin synchronization, validation and translation documentation into NekokoLPA2.
+
+### Upgrade notes
+- An existing reboot-required OMAPI marker still needs one device restart after updating; clearing app data is unnecessary.
+- Xiaomi and WebCard fixes have automated regression coverage; confirmation on the affected hardware is pending. See [issue review](docs/issue-audit-602.md).
 
 ## [2.4.1+601] - 2026-10-29
 
