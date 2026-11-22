@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 2.5.0+606
+version: 2.6.0+607
 
 environment:
   sdk: ^3.10.0
@@ -75,6 +75,7 @@ dependencies:
 
   collection: ^1.19.1
   convert: ^3.1.2
+  ffi: ^2.1.0
   # 12.4.0 requires the iOS 26.1 SDK, which is newer than the SDK on the
   # macOS 15 CI runner. Keep the last version that supports the current runner.
   device_info_plus: 12.3.0

@@ -223,6 +223,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get ccidReaderSubtitle => 'USB-Smartcard-Leser und PC/SC-Geräte';
 
   @override
+  String get phoenixReaderTitle => 'Phoenix serial reader';
+
+  @override
+  String get phoenixReaderSubtitle =>
+      'RS-232 Phoenix/Smartmouse readers on a COM port (PL2303, CH340)';
+
+  @override
   String get bluetoothReaderTitle => 'Bluetooth';
 
   @override
@@ -842,6 +849,14 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get connectReaderSubtitleCcid =>
       'Stellen Sie sicher, dass Ihr CCID-Leser an Ihren Computer angeschlossen ist.';
+
+  @override
+  String get connectReaderSubtitlePhoenix =>
+      'Make sure your Phoenix (serial) reader is plugged in, and turn it on under Settings → Reader types.';
+
+  @override
+  String get connectReaderSubtitleDesktop =>
+      'Ensure your CCID reader is connected. Using a Phoenix serial reader? Enable it under Settings → Reader types.';
 
   @override
   String get downloadExtension => 'Smartcard-Erweiterung herunterladen';
